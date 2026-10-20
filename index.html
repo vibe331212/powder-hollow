@@ -1390,6 +1390,7 @@ const SCN={
     doors:[{x:290,y:428,w:60,h:40,to:'shop'},{x:800,y:438,w:60,h:40,to:'lodge'}]},
   shop:{w:1100,h:800,name:'General Store',solids:[[0,0,1100,120],[0,0,30,800],[1070,0,30,800],[0,770,500,30],[620,770,480,30],[110,620,300,70]],doors:[{x:500,y:740,w:120,h:60,to:'out',spawn:'shop'}]},
   lodge:{w:1100,h:800,name:'The Lodge',solids:[[0,0,1100,150],[0,0,30,800],[1070,0,30,800],[0,770,500,30],[620,770,480,30],[740,630,290,64],[440,40,220,150]],doors:[{x:500,y:740,w:120,h:60,to:'out',spawn:'lodge'}]},
+  mtn:{w:1600,h:6400,name:'Frosty Peak Trail',solids:[],doors:[]},
   house:{w:820,h:620,name:'Your House',solids:[[0,0,820,130],[0,0,30,620],[790,0,30,620],[0,590,350,30],[470,590,350,30],[60,130,180,170],[600,130,170,110]],doors:[{x:350,y:560,w:120,h:60,to:'out',spawn:'house'}]}
 };
 for(const h of VHOUSES){SCN.out.solids.push([h.x,h.y,h.w,h.h]);SCN.out.doors.push({x:h.x+h.w/2-30,y:h.y+h.h-2,w:60,h:40,to:'house',house:h.id});}
@@ -1422,7 +1423,7 @@ function enterVillage(scene,spawn){
 function leaveVillage(){townLeave();VR.on=false;VIL.carry=null;VIL.drive=null;$('vhud').hidden=true;$('vPrompt').hidden=true;save.village=false;persist();VIL.basket=[];game.state='menu';showScreen('menu');updateMenuStats();if(P.state!=='ride')resetWorld();}
 function vToast(t){const e=$('vToast');e.textContent=t;e.classList.add('show');VIL.toastT=2.4;}
 function renderVillageHud(){
-  $('vDecorBtn').hidden=!(VIL.scene==='house'&&save.vhouses.includes(VIL.houseId));$('vSnowBtn').hidden=VIL.scene!=='out'||!!VIL.drive;$('vFriendsBtn').textContent=TC.code?'Friends: '+TC.code+' ('+Math.max(1,TC.players.length)+')':'Friends';
+  $('vDecorBtn').hidden=!(VIL.scene==='house'&&save.vhouses.includes(VIL.houseId));$('vSnowBtn').hidden=(VIL.scene!=='out'&&VIL.scene!=='mtn')||!!VIL.drive;$('vFriendsBtn').textContent=TC.code?'Friends: '+TC.code+' ('+Math.max(1,TC.players.length)+')':'Friends';
   $('vPlace').textContent=(VIL.scene==='house'?vhouse(VIL.houseId).name:SCN[VIL.scene].name)+(VIL.scene==='out'?(VIL.night?' at night':''):'');$('vCoins').textContent=coinStr()+' coins';
   const b=$('vBasket');b.hidden=!VIL.basket.length;b.textContent='';
   if(VIL.basket.length){const h=document.createElement('b');h.textContent='Your tickets';b.appendChild(h);let tot=0;for(const it of VIL.basket){const g=gearById(it.sl,it.id);tot+=g.price;const d=document.createElement('div');d.textContent=g.name+'  '+g.price.toLocaleString();b.appendChild(d);}
@@ -1435,6 +1436,9 @@ function nearest(){
     const c=sc==='shop'?{x:260,y:720}:{x:885,y:725};const d=Math.hypot(px-c.x,py-c.y);if(d<110)consider(d,{k:'checkout'});}
   if(sc==='house'&&save.vhouses.includes(VIL.houseId)){if(VIL.carry)return{k:'place'};for(const it of decorList()){const dd=Math.hypot(px-it.x,py-it.y);if(dd<55)consider(dd-15,{k:'pickup',it});}}
   if(sc==='house'){const hm=Math.hypot(px-410,py-180);if(hm<90&&VIL.houseId!==save.vhome)consider(hm,{k:'sethome'});const bed=Math.hypot(px-150,py-330);if(bed<110)consider(bed,{k:'bed'});const w=Math.hypot(px-685,py-270);if(w<110)consider(w,{k:'wardrobe'});}
+  if(sc==='out'&&VIL.drive&&Math.hypot(VIL.drive.x-MTN_SIGN.x,VIL.drive.y-MTN_SIGN.y)<130)return{k:'tomtn'};
+  if(sc==='out'&&!VIL.drive&&Math.hypot(px-MTN_SIGN.x,py-MTN_SIGN.y)<100)consider(40,{k:'mtninfo'});
+  if(sc==='mtn'){const cd=Math.hypot(px-MTN.car.x,py-MTN.car.y);if(cd<100)consider(cd,{k:'drivehome'});for(const b of MTN.bushes){const dd=Math.hypot(px-b.x,py-b.y);if(dd<70)consider(dd,{k:'bush',b});}const gd=Math.hypot(px-MTN.gondola.x,py-MTN.gondola.y);if(gd<110)consider(gd,{k:'gondola'});return best;}
   if(sc==='out'&&VIL.drive){if(!VR.on&&Math.hypot(VIL.drive.x-RACE_START.x,VIL.drive.y-RACE_START.y)<110)return{k:'startrace'};return{k:'exitcar'};}
   if(sc==='out'){const gd=Math.hypot(px-GIFT.x,py-(GIFT.y+30));if(gd<90)consider(gd-30,{k:'gift'});const fl=Math.hypot(px-RACE_START.x,py-RACE_START.y);if(fl<90)consider(fl,{k:'raceinfo'});}
   if(sc==='out'){for(const lc of CARLOT){const dd=Math.hypot(px-lc.x,py-(lc.y+40));if(dd<60)consider(dd-10,{k:'lotcar',lc});}if(VIL.parked){const dd=Math.hypot(px-VIL.parked.x,py-VIL.parked.y);if(dd<90)consider(dd-20,{k:'drive'});}}
@@ -1452,6 +1456,11 @@ function promptText(a){
   if(a.k==='lotcar'){const C=carById(a.lc.car);return save.cars.includes(C.id)?'Use the '+C.name:'Buy '+C.name+'  '+C.price.toLocaleString()+' coins';}
   if(a.k==='drive')return'Drive your '+carById(VIL.parked.id).name;
   if(a.k==='exitcar')return'Get out of the car';
+  if(a.k==='tomtn')return'Drive to the mountains';
+  if(a.k==='mtninfo')return'Mountain Road: drive a car here to go hiking';
+  if(a.k==='drivehome')return'Drive back to the village';
+  if(a.k==='bush'){if(a.b.searched)return a.b.found?'You already took the pouch here':'Nothing in this bush';return'Climb in the bush and search';}
+  if(a.k==='gondola')return'Ride the gondola down';
   if(a.k==='startrace')return'Start a lap race'+(save.lapBest?'  (best '+fmtTime(save.lapBest)+')':'');
   if(a.k==='raceinfo')return save.lapBest?'Lap race best: '+fmtTime(save.lapBest)+'. Drive a car here to race':'Drive a car here to start a lap race';
   if(a.k==='gift'){const st=giftState();return st.ready?'Open your daily present  (day '+st.day+')':'Next present in '+st.wait;}
@@ -1481,6 +1490,11 @@ function villageAct(){
     else vToast('Your '+C.name+' is parked next to the lot');
     save.activeCar=C.id;persist();VIL.parked={id:C.id,x:1460,y:1130,ang:-Math.PI/2};renderVillageHud();return;}
   if(a.k==='drive'){VIL.drive={id:VIL.parked.id,x:VIL.parked.x,y:VIL.parked.y,ang:VIL.parked.ang,v:0};VIL.parked=null;vToast('Arrow keys to drive (or tap where to go). Press E to get out.');return;}
+  if(a.k==='tomtn'){goMountain();return;}
+  if(a.k==='mtninfo')return;
+  if(a.k==='drivehome'){goVillageFromMtn();return;}
+  if(a.k==='bush'){searchBush(a.b);return;}
+  if(a.k==='gondola'){rideGondola();return;}
   if(a.k==='startrace'){startLapRace();return;}
   if(a.k==='raceinfo')return;
   if(a.k==='gift'){openGift();return;}
@@ -1520,7 +1534,7 @@ function updateVillage(dt){
   if(mx||my)VIL.target=null;
   if(!mx&&!my&&VIL.target){const dx=VIL.target.x-VIL.x,dy=VIL.target.y-VIL.y,d=Math.hypot(dx,dy);if(d<8)VIL.target=null;else{mx=dx/d;my=dy/d;}}
   const len=Math.hypot(mx,my);VIL.moving=len>0;
-  if(len){mx/=len;my/=len;const sp=230*dt;const nx=VIL.x+mx*sp,ny=VIL.y+my*sp;
+  if(len){mx/=len;my/=len;const sp=(VIL.scene==="mtn"?210:230)*dt;const nx=VIL.x+mx*sp,ny=VIL.y+my*sp;
     if(!vSolid(nx,VIL.y))VIL.x=nx;else if(VIL.target)VIL.target=null;
     if(!vSolid(VIL.x,ny))VIL.y=ny;else if(VIL.target)VIL.target=null;
     VIL.dir=Math.abs(mx)>Math.abs(my)?(mx>0?'right':'left'):(my>0?'down':'up');VIL.ph+=dt*11;}
@@ -1629,7 +1643,7 @@ function drawVillageOut(){
   add(980,()=>drawSnowman({x:560,y:980}));
   add(620,()=>DECOR.bench.draw({x:620,y:620,s:1}));add(620,()=>DECOR.bench.draw({x:980,y:620,s:1}));
   const abub=[];for(const a of VANIMALS)add(a.y,()=>drawAnimal(a,abub));
-  add(GIFT.y+20,drawGift);add(RACE_START.y+10,drawRaceFlag);
+  add(GIFT.y+20,drawGift);add(MTN_SIGN.y+10,drawMtnSign);add(RACE_START.y+10,drawRaceFlag);
   for(const id in TC.others){const o=TC.others[id];if(o.scene==='out')add(o.ry,()=>drawFriend(o));}
   for(const lc of CARLOT){const C=carById(lc.car);add(lc.y+30,()=>{drawCar(lc.x,lc.y,lc.ang,C.model,C.c,{parked:true,noSnow:true});const own=save.cars.includes(C.id);ctx.fillStyle=own?'#2f7fd6':'#ffffff';rrect(lc.x-56,lc.y+26,112,30,6);ctx.fill();ctx.strokeStyle='#16407a';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle=own?'#ffffff':'#16407a';ctx.font='800 9px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(C.name,lc.x,lc.y+35);ctx.fillText(own?'OWNED':C.price.toLocaleString()+' coins  ·  speed '+C.spd,lc.x,lc.y+48);});}
   if(VIL.parked&&!VIL.drive){const C=carById(VIL.parked.id);if(C)add(VIL.parked.y,()=>drawCar(VIL.parked.x,VIL.parked.y,VIL.parked.ang,C.model,C.c,{parked:true}));}
@@ -1698,7 +1712,7 @@ function drawVillage(){
   const sc=SCN[VIL.scene];VS=clamp(Math.min(W/760,H/620),.55,1.5)*(VIL.scene==='out'&&VIL.drive?.72:1);
   VCX=sc.w*VS<W?sc.w/2:clamp(VIL.x,W/2/VS,sc.w-W/2/VS);VCY=sc.h*VS<H?sc.h/2:clamp(VIL.y-30,H/2/VS,sc.h-H/2/VS);
   ctx.save();ctx.translate(W/2,H/2);ctx.scale(VS,VS);ctx.translate(-VCX,-VCY);
-  if(VIL.scene==='out')drawVillageOut();else if(VIL.scene==='shop')drawShop();else if(VIL.scene==='lodge')drawLodge();else drawHouse();
+  if(VIL.scene==='mtn')drawMountain();else if(VIL.scene==='out')drawVillageOut();else if(VIL.scene==='shop')drawShop();else if(VIL.scene==='lodge')drawLodge();else drawHouse();
   const a=nearest();if(a&&a.k==='item'){const S=SHELVES[VIL.scene].find(S=>S.items.includes(a.it));if(S){const q=spotPos(S,S.items.indexOf(a.it));ctx.strokeStyle='#f2b630';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,(S.wall?q.y-30:S.y+2),18,26,0,0,TAU);ctx.stroke();}}
   if(VIL.target){ctx.strokeStyle='rgba(47,127,214,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(VIL.target.x,VIL.target.y,12,5,0,0,TAU);ctx.stroke();}
   ctx.restore();
@@ -1789,7 +1803,7 @@ function drawRaceMarks(){if(!VR.on||VR.count>0)return;const c=RACE_CP[VR.cp];con
   ctx.strokeStyle='rgba(255,210,80,.9)';ctx.lineWidth=8;ctx.beginPath();ctx.ellipse(c.x,c.y,70*pulse,28*pulse,0,0,TAU);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=3;ctx.stroke();
   const d=VIL.drive;if(d){const a=Math.atan2(c.y-d.y,c.x-d.x);ctx.save();ctx.translate(d.x+Math.cos(a)*70,d.y+Math.sin(a)*70);ctx.rotate(a);poly([18,0,-8,-10,-8,10],'#ffd23f');ctx.restore();}}
 // snowballs
-function throwSnowball(){if(VIL.scene!=='out'||VIL.drive)return;if((VIL.throwCD||0)>0)return;VIL.throwCD=.35;
+function throwSnowball(){if((VIL.scene!=='out'&&VIL.scene!=='mtn')||VIL.drive)return;if((VIL.throwCD||0)>0)return;VIL.throwCD=.35;
   let dx=0,dy=0;if(VIL.target){dx=VIL.target.x-VIL.x;dy=VIL.target.y-VIL.y;}if(!dx&&!dy){dx=VIL.dir==='left'?-1:VIL.dir==='right'?1:0;dy=VIL.dir==='up'?-1:VIL.dir==='down'?1:0;}const l=Math.hypot(dx,dy)||1;
   const b={x:VIL.x,y:VIL.y-6,z:44,vx:dx/l*440,vy:dy/l*440,vz:90,own:true};VIL.balls.push(b);sfx('jump');
   if(TC.ch)TC.ch.send({type:'broadcast',event:'ball',payload:{x:b.x,y:b.y,vx:b.vx,vy:b.vy,id:RC.id}});}
@@ -1821,7 +1835,7 @@ function drawFriend(o){const sg=save.gear;
   if(o.drive){const C=carById(o.drive.car);if(C)drawCar(o.rx,o.ry,o.drive.ang,C.model,C.c,{});}
   else{save.gear=Object.assign({},sg,o.gear||{});try{drawWalker(o.rx,o.ry,o.dir||'down',o.ph||0,!!o.moving);}finally{save.gear=sg;}}
   drawBubble({x:o.rx,y:o.ry-(o.drive?70:104),text:cleanName(o.name),a:1});}
-function updateFun(dt){updateSnowballs(dt);updateRace(dt);townTick(dt);}
+function updateFun(dt){updateSnowballs(dt);updateRace(dt);townTick(dt);updateMtn(dt);}
 VIL.balls=[];VIL.splats=[];
 $('vSnowBtn').onclick=()=>throwSnowball();
 $('vDecorBtn').onclick=()=>{sfx('ui');renderDecor();showScreen('vDecor');game.state='vmenu';$('vhud').hidden=true;};
@@ -1832,6 +1846,74 @@ $('tBack').onclick=()=>{sfx('ui');showScreen(null);game.state='village';$('vhud'
 $('tCreate').onclick=()=>{save.name=cleanName($('tName').value);persist();townJoin(makeCode());};
 $('tJoin').onclick=()=>{const c=$('tCodeIn').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==4){$('tMsg').textContent='Village codes are 4 letters or numbers.';return;}save.name=cleanName($('tName').value);persist();$('tMsg').textContent='';townJoin(c);};
 $('tLeave').onclick=()=>{townLeave();renderTownPanel();renderVillageHud();};
+
+
+/* ---------- Mountain hike: parking lot, trail, bushes with pouches, gondola ---------- */
+const MTN_SIGN={x:120,y:1130};
+const MTN={car:{x:800,y:6170},gondola:{x:1330,y:330},bushes:[],trees:[],rocks:[],bands:[],path:[],gy:[5000,4100,3200,2300,1400,640]};
+const POUCH_N=9;
+(function buildMountain(){const sc=SCN.mtn;const rng=mulberry32(4242);
+  sc.solids=[[0,0,1600,30],[0,0,30,6400],[1570,0,30,6400],[0,6370,1600,30],[0,5880,560,80],[1040,5880,560,80]];
+  MTN.gy.forEach((y,i)=>{const gx=i%2?1150:450;MTN.bands.push({y,gx});sc.solids.push([0,y,gx-115,70],[gx+115,y,1600-(gx+115),70]);});
+  MTN.path=[[800,6000],[800,5600]];MTN.gy.forEach((y,i)=>{const gx=i%2?1150:450;MTN.path.push([gx,y+200],[gx,y-120]);});MTN.path.push([800,430]);
+  const freeAt=(x,y,m)=>{for(const r of sc.solids)if(x>r[0]-m&&x<r[0]+r[2]+m&&y>r[1]-m&&y<r[1]+r[3]+m)return false;for(const b of MTN.bands)if(Math.abs(x-b.gx)<150&&Math.abs(y-b.y)<220)return false;if(y>5850||y<760)return false;return true;};
+  for(let i=0;i<500&&MTN.trees.length<90;i++){const x=60+rng()*1480,y=520+rng()*5300;if(freeAt(x,y,70)&&!MTN.path.some(p=>Math.hypot(p[0]-x,p[1]-y)<130)){MTN.trees.push({x,y,s:1.1+rng()*.6});sc.solids.push([x-14,y-10,28,16]);}}
+  for(let i=0;i<300&&MTN.rocks.length<30;i++){const x=60+rng()*1480,y=520+rng()*5300;if(freeAt(x,y,60)){MTN.rocks.push({x,y,r:16+rng()*12});sc.solids.push([x-18,y-12,36,18]);}}
+  for(let i=0;i<600&&MTN.bushes.length<32;i++){const x=70+rng()*1460,y=800+rng()*5000;if(freeAt(x,y,40)&&!MTN.bushes.some(b=>Math.hypot(b.x-x,b.y-y)<180))MTN.bushes.push({x,y,id:MTN.bushes.length,s:.9+rng()*.4});}
+})();
+const pouchPeriod=()=>Math.floor(Date.now()/864e5/2);
+function pouchState(){const per=pouchPeriod();if(!save.pouch||save.pouch.p!==per){save.pouch={p:per,got:[]};}
+  const rng=mulberry32(per*977+13);const ids=MTN.bushes.map(b=>b.id);for(let i=ids.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}
+  const chosen=ids.slice(0,POUCH_N);const vals={};chosen.forEach((id,k)=>{vals[id]=200+Math.floor(mulberry32(per*31+id)()*13)*100;});return{per,chosen,vals};}
+function searchBush(b){const st=pouchState();b.shake=.6;sfx('jump');b.searched=true;
+  if(st.chosen.includes(b.id)&&!save.pouch.got.includes(b.id)){const c=st.vals[b.id];save.pouch.got.push(b.id);save.coins+=c;b.found=true;persist();sfx('goal');
+    for(let i=0;i<18;i++)VIL.splats.push({x:b.x,y:b.y-30,vx:rand(-120,120),vy:rand(-180,20),t:0,life:.9,col:pick(['#ffd76a','#f2b630','#ffffff'])});
+    vToast('Found a pouch! +'+c.toLocaleString()+' coins  ('+save.pouch.got.length+'/'+POUCH_N+')');renderVillageHud();}
+  else{b.found=save.pouch.got.includes(b.id);vToast(b.found?'You already found this pouch':pick(['Just leaves and snow','Nothing here','Only a pinecone','A sleepy squirrel waves. No pouch.']));}}
+function goMountain(){VIL.fade=1.6;VIL.sleepMsg='Driving to the mountains...';VIL.fadeTo=()=>{const id=VIL.drive?VIL.drive.id:(VIL.parked&&VIL.parked.id);MTN.carId=id;VIL.drive=null;VIL.parked=null;VR.on=false;VIL.scene='mtn';VIL.x=MTN.car.x+70;VIL.y=MTN.car.y;VIL.dir='up';MTN.hike={t:0,on:false,done:false};for(const b of MTN.bushes){b.searched=false;b.found=false;}pouchState();renderVillageHud();vToast('Welcome to Frosty Peak! Hike to the top and search the bushes for pouches.');};}
+function goVillageFromMtn(){VIL.fade=1.6;VIL.sleepMsg='Driving home...';VIL.fadeTo=()=>{VIL.scene='out';VIL.parked=MTN.carId?{id:MTN.carId,x:MTN_SIGN.x+120,y:MTN_SIGN.y,ang:Math.PI/2}:VIL.parked;VIL.x=MTN_SIGN.x+120;VIL.y=MTN_SIGN.y+60;VIL.dir='right';$('vRace').hidden=true;renderVillageHud();};}
+function rideGondola(){VIL.fade=2.4;VIL.sleepMsg='Riding the gondola down...';VIL.fadeTo=()=>{VIL.x=MTN.car.x+90;VIL.y=MTN.car.y-80;VIL.dir='down';MTN.hike={t:0,on:false,done:false};};}
+function updateMtn(dt){if(VIL.scene!=='mtn'){return;}const st=pouchState();for(const b of MTN.bushes)if(b.shake>0)b.shake-=dt;
+  const H=MTN.hike||(MTN.hike={t:0,on:false,done:false});
+  if(!H.on&&!H.done&&VIL.y<5860){H.on=true;H.t=0;vToast('Hike started! Get to the summit.');}
+  if(H.on){H.t+=dt;if(VIL.y<470){H.on=false;H.done=true;const best=!save.hikeBest||H.t<save.hikeBest;if(best){save.hikeBest=+H.t.toFixed(2);}const prize=best?700:250;save.coins+=prize;persist();sfx('goal');vToast('Summit! '+fmtTime(H.t)+(best?'  New best!':'')+'  +'+prize+' coins');
+      for(let i=0;i<30;i++)VIL.splats.push({x:800,y:330,vx:rand(-160,160),vy:rand(-220,20),t:0,life:1.2,col:pick(['#ff8ab3','#ffd76a','#4fd8b6','#8cc8ff'])});renderVillageHud();}}
+  const pill=$('vRace');pill.hidden=false;pill.textContent='Pouches '+save.pouch.got.length+'/'+POUCH_N+(H.on?'   Hike '+fmtTime(H.t):H.done?'   Summit '+fmtTime(H.t):'')+(save.hikeBest?'   Best '+fmtTime(save.hikeBest):'');}
+function drawMtnSign(){const x=MTN_SIGN.x,y=MTN_SIGN.y;ctx.fillStyle='#6d4d39';ctx.fillRect(x-3,y-70,6,70);ctx.fillStyle='#2f6d55';ctx.beginPath();ctx.moveTo(x-60,y-100);ctx.lineTo(x+50,y-100);ctx.lineTo(x+66,y-84);ctx.lineTo(x+50,y-68);ctx.lineTo(x-60,y-68);ctx.closePath();ctx.fill();ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#ffffff';ctx.font='800 12px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('MOUNTAIN ROAD',x,y-84);
+  poly([x-40,y-104,x-20,y-130,x,y-104],'#8ea8c6');poly([x-28,y-120,x-20,y-130,x-12,y-120],'#ffffff');}
+function drawBush(b){const sh=b.shake>0?Math.sin(b.shake*40)*4:0,s=b.s;ctx.save();ctx.translate(b.x+sh,b.y);ctx.scale(s,s);ell(4,4,34,10,SHADOW);
+  ell(-16,-16,20,17,'#3f7d5c');ell(16,-16,20,17,'#3f7d5c');ell(0,-28,22,19,'#4e9470');ell(-8,-20,14,12,'#5f9d6b');ell(-6,-42,14,5,'#ffffff');ell(14,-30,10,4,'#ffffff');
+  for(let i=0;i<4;i++)ell(Math.sin(i*2.3+b.id)*18,-14-((i*7)%16),2.4,2.4,'#c0304f');
+  if(b.found){ctx.fillStyle='#8a5a3a';ell(24,-6,9,8);ctx.fillStyle='#f2b630';ell(24,-6,3,3);}
+  ctx.restore();}
+function drawMountain(){const sc=SCN.mtn,v={y0:VCY-H/2/VS-200,y1:VCY+H/2/VS+200};
+  const g=ctx.createLinearGradient(0,0,0,sc.h);g.addColorStop(0,'#ffffff');g.addColorStop(.5,'#eef5fd');g.addColorStop(1,'#e3edf8');ctx.fillStyle=g;ctx.fillRect(0,Math.max(0,v.y0),sc.w,Math.min(sc.h,v.y1)-Math.max(0,v.y0));
+  for(let gy=Math.floor(v.y0/240);gy<=v.y1/240;gy++)for(let gx=0;gx<7;gx++){const h=hash(gx+50,gy);if(h>.4)ell(gx*240+h*120,gy*240+hash(gy,gx+3)*120,120,26,'rgba(150,190,232,.12)');}
+  // trail
+  ctx.strokeStyle='#d6c4a5';ctx.lineWidth=64;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();MTN.path.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=40;ctx.stroke();ctx.setLineDash([10,22]);ctx.strokeStyle='rgba(140,110,80,.35)';ctx.lineWidth=3;ctx.stroke();ctx.setLineDash([]);
+  // parking lot
+  ctx.fillStyle='#8a94a6';rrect(560,5960,480,380,18);ctx.fill();ctx.strokeStyle='#ffffff';ctx.lineWidth=3;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(600+i*100,6060);ctx.lineTo(600+i*100,6300);ctx.stroke();}
+  ctx.fillStyle='#16407a';ctx.font='800 16px Sniglet, system-ui, sans-serif';ctx.textAlign='center';ctx.fillText('TRAILHEAD PARKING',800,5995);
+  const items=[];const add=(y,fn)=>{if(y>v.y0-120&&y<v.y1+200)items.push({y,fn});};
+  // cliff bands
+  for(const b of MTN.bands)add(b.y+70,()=>{for(const [x0,x1] of [[0,b.gx-115],[b.gx+115,1600]]){ctx.fillStyle='#7d8ca3';ctx.fillRect(x0,b.y,x1-x0,70);ctx.fillStyle='#6b7a90';for(let x=x0;x<x1;x+=46)ctx.fillRect(x+6,b.y+20+((x/46|0)%3)*10,30,24);ctx.fillStyle='#ffffff';for(let x=x0;x<x1;x+=30)ell(x+15,b.y+2,18,7);}
+    ctx.fillStyle='#ffffff';rrect(b.gx-40,b.y+80,80,20,6);ctx.fill();ctx.fillStyle='#16407a';ctx.font='800 9px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('TRAIL UP',b.gx,b.y+90);});
+  for(const t of MTN.trees)add(t.y,()=>drawTree(t));
+  for(const r of MTN.rocks)add(r.y,()=>drawRock(r));
+  for(const b of MTN.bushes)add(b.y,()=>drawBush(b));
+  // car in lot
+  if(MTN.carId){const C=carById(MTN.carId);if(C)add(MTN.car.y,()=>drawCar(MTN.car.x,MTN.car.y,0,C.model,C.c,{parked:true}));}
+  // summit: flag, telescope, gondola
+  add(380,()=>{ell(800,380,170,40,'#ffffff');ctx.strokeStyle='#1b2b44';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(800,380);ctx.lineTo(800,250);ctx.stroke();poly([800,250,860,266+Math.sin(game.t*4)*4,800,282],'#e0483a');
+    ctx.fillStyle='#16407a';ctx.font='800 18px Sniglet, system-ui, sans-serif';ctx.textAlign='center';ctx.fillText('FROSTY PEAK SUMMIT',800,220);ctx.fillStyle='#5d6878';ctx.fillRect(640,330,6,40);ctx.save();ctx.translate(643,326);ctx.rotate(-.4);ctx.fillRect(-4,-4,28,9);ctx.restore();});
+  add(MTN.gondola.y,()=>{const x=MTN.gondola.x,y=MTN.gondola.y;ctx.fillStyle='#5d7ea6';ctx.fillRect(x-60,y-70,120,70);poly([x-70,y-68,x+70,y-68,x,y-110],'#3d5fa8');ctx.fillStyle='#ffffff';rrect(x-48,y-60,96,20,6);ctx.fill();ctx.fillStyle='#16407a';ctx.font='800 11px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('GONDOLA',x,y-50);
+    ctx.strokeStyle='#1b2b44';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y-100);ctx.lineTo(x+180,6300);ctx.stroke();for(let i=0;i<8;i++){const t=((VIL.t||0)*.03+i/8)%1,cx=lerp(x,x+180,t),cy=lerp(y-100,6300,t);ctx.fillStyle='#e0483a';rrect(cx-14,cy,28,24,5);ctx.fill();ctx.fillStyle='#cfe8fb';ctx.fillRect(cx-10,cy+4,20,9);}});
+  add(VIL.y,()=>drawWalker(VIL.x,VIL.y,VIL.dir,VIL.ph,VIL.moving));
+  for(const id in TC.others){const o=TC.others[id];if(o.scene==='mtn')add(o.ry,()=>drawFriend(o));}
+  items.sort((a,b)=>a.y-b.y);for(const it of items)it.fn();drawSnowballs();
+}
 
 buildShelves();
 
