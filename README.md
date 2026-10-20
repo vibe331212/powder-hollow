@@ -10,7 +10,7 @@ A cozy snowboarding game that runs in the browser. Carve, jump, spin, grab and f
 - **Race Friends:** create a race to get a 4-letter code, send it to friends, and race each other live on the same course.
 
 ## Village mode
-Tap **Village** on the main menu to walk around town. Walk into the General Store, take tickets from the shelves and pay at the checkout. The Lodge sells snowboards and helmets, your house has a bed for night time and a wardrobe, and the ski lift takes you to Free Ride, Trick Challenge or Race Friends. Tap **Classic menu** to go back.
+Tap **Village** on the main menu to walk around town. Walk into the General Store, take tickets from the shelves and pay at the checkout. The Lodge sells snowboards and helmets, your house has a bed for night time and a wardrobe, and the ski lift takes you to Free Ride, Trick Challenge or Race Friends. The town is big: roads with traffic and a roundabout, townspeople and robots, a park, a cafe and a town hall. Buy houses (from a 20,000 coin bungalow up to a 500,000 coin ice castle) and cars at the Car Dealer, then drive around with the arrow keys. Tap **Play with friends** to make a town code so friends can show up in your town. Tap **Classic menu** to go back.
 
 ## Accounts
 Tap **Sign in** on the main menu to create an account with email and password. Coins, gear, places and stars are saved to the account, so progress follows you to any device. The table setup is in `supabase.sql`; each player can only read and change their own save.
