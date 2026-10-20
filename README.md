@@ -6,13 +6,13 @@ A cozy snowboarding game that runs in the browser. Carve, jump, spin, grab and f
 
 ## Modes
 - **Free Ride:** no score, just ride to the finish.
-- **Trick Challenge:** five runs with goals and stars. Play alone, or tap Challenge friends to get a code; the first rider to finish all 3 goals wins.
+- **Trick Challenge:** 15 runs with goals and stars. Play alone, or tap Challenge friends to get a code; the first rider to finish all 3 goals wins.
 - **Race Friends:** create a race to get a 4-letter code, send it to friends, and race each other live on the same course.
 
 ## Controls
 - Left / Right: carve, and spin in the air
 - Space: jump, and press again in the air to flip
-- Up / Down off a ramp: front flip or backflip
+- Up / Down in the air: front flip or backflip (on phones, use the Flip and Back buttons)
 - X: hold in the air to grab
 - P: pause
 

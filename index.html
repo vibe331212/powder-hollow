@@ -104,6 +104,10 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
 .tbtn.on{background:var(--blue);color:var(--snow)}
 .tbtn svg{width:26px;height:26px}
 .tbtn.act{width:78px;height:78px}
+.tgrid{display:grid;grid-template-columns:repeat(2,auto);gap:10px;align-items:end;justify-items:center}
+.tgrid .tbtn:not(.act){width:60px;height:60px}
+.tlab{display:grid;justify-items:center;font-size:11px;line-height:1}
+.tlab svg{width:20px;height:20px}
 
 /* Lists */
 .cards{display:grid;gap:12px}
@@ -199,8 +203,12 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       <button class="tbtn" data-k="right" aria-label="Carve right"><svg viewBox="0 0 24 24" fill="none" stroke="#16407a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
     </div>
     <div class="grp">
-      <button class="tbtn act" data-k="trick">Grab</button>
-      <button class="tbtn act" data-k="jump">Jump</button>
+      <div class="tgrid">
+        <button class="tbtn" data-k="up" aria-label="Front flip"><span class="tlab"><svg viewBox="0 0 24 24" fill="none" stroke="#16407a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>Flip</span></button>
+        <button class="tbtn" data-k="down" aria-label="Backflip"><span class="tlab"><svg viewBox="0 0 24 24" fill="none" stroke="#16407a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>Back</span></button>
+        <button class="tbtn act" data-k="trick">Grab</button>
+        <button class="tbtn act" data-k="jump">Jump</button>
+      </div>
     </div>
   </div>
 
@@ -211,13 +219,13 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       <p class="tag">Carve through pine forests, frozen falls, cabin hollows and crystal caves. Catch air, collect glowing snowflakes, and say hi to the locals.</p>
       <div class="menu-buttons">
         <button class="btn primary" id="btnFree">Free Ride<span>No score. Just you and the snow.</span></button>
-        <button class="btn" id="btnChallenge">Trick Challenge<span>Five runs, fun goals, stars to earn</span></button>
+        <button class="btn" id="btnChallenge">Trick Challenge<span>15 runs with goals. Play alone or challenge friends</span></button>
         <button class="btn" id="btnRace">Race Friends<span>Share a code and race each other</span></button>
         <button class="btn" id="btnLocker">Shop<span>Spend coins on new places, riders, gear and music</span></button>
       </div>
       <div class="menu-foot">
         <span class="stat" title="Coins"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5c542" stroke="#d99a1e" stroke-width="2"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#fff3c4" stroke-width="2"/></svg><span id="menuCoins">0</span> coins</span>
-        <span class="stat" title="Stars earned"><svg viewBox="0 0 24 24" fill="#2f7fd6"><path d="M12 2.5l2.9 6.2 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.4 1.5-6.7-5.1-4.6 6.8-.7z"/></svg><span id="menuStars">0</span> / 15</span>
+        <span class="stat" title="Stars earned"><svg viewBox="0 0 24 24" fill="#2f7fd6"><path d="M12 2.5l2.9 6.2 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.4 1.5-6.7-5.1-4.6 6.8-.7z"/></svg><span id="menuStars">0</span> / <span id="menuStarsTotal">45</span></span>
         <button class="chip" id="btnSound">Sound on</button>
       </div>
       <details class="keys" id="keysBox" open>
@@ -225,7 +233,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <div class="keygrid">
           <span><kbd>Left</kbd> <kbd>Right</kbd></span><span>Carve. In the air, spin.</span>
           <span><kbd>Space</kbd></span><span>Jump. Press again in the air to flip.</span>
-          <span><kbd>Up</kbd> <kbd>Down</kbd></span><span>Off a ramp: hold for a front flip or backflip.</span>
+          <span><kbd>Up</kbd> <kbd>Down</kbd></span><span>In the air: hold for a front flip or backflip.</span>
           <span><kbd>X</kbd></span><span>Hold in the air to grab your board.</span>
           <span><kbd>Down</kbd> <kbd>Up</kbd></span><span>Tuck for speed, or slow down.</span>
           <span><kbd>P</kbd></span><span>Pause</span>
@@ -270,7 +278,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       <div id="raceLobby" class="stack" hidden>
         <div class="codebox"><span>Race code</span><b id="lobbyCode">----</b><small>Friends open Race Friends and type this code to join.</small></div>
         <div class="field"><span id="pickText">You choose what everyone plays:</span>
-          <select id="pickSel" class="picksel"><option value="-1">Race to the bottom</option><option value="0">First Tracks challenge</option><option value="1">Pine Party challenge</option><option value="2">Ice Dancer challenge</option><option value="3">Crystal Combo challenge</option><option value="4">Big Mountain challenge</option></select></div>
+          <select id="pickSel" class="picksel"><option value="-1">Race to the bottom</option></select></div>
         <ul class="goals" id="lobbyPlayers"></ul>
         <p class="lockline" id="lobbyStatus"></p>
         <button class="btn primary small" id="btnStartRace" hidden>Start race</button>
@@ -323,7 +331,7 @@ function persist(){store.set('save',save);}
 const GEAR={
   place:[
     {id:'classic',name:'Classic Mountain',price:0,places:['forest','falls','cabins','caves'],c1:'#eaf4ff',c2:'#8cc8ff'},
-    {id:'mix',name:'Mix My Places',price:0,mix:true,c1:'#ffd27a',c2:'#b9a8ff',sub:'Every place you own, shuffled'},
+    {id:'mix',name:'Mix My Places',price:3000,mix:true,c1:'#ffd27a',c2:'#b9a8ff',sub:'Every place you own, shuffled'},
     {id:'town',name:'Neighborhood Town',price:800,places:['maple','square'],c1:'#e9a9a0',c2:'#a9c8ef'},
     {id:'farm',name:'Snowy Farm',price:900,places:['barnyard','orchard'],c1:'#c0453f',c2:'#e8c25a'},
     {id:'harbor',name:'Frozen Harbor',price:1100,places:['lighthouse','docks'],c1:'#5aa7d6',c2:'#ffffff'},
@@ -352,7 +360,13 @@ const GEAR={
     {id:'ava',name:'Ava',price:800,skin:'#fbe0c8',hair:'#e8c26a'},
     {id:'bunny',name:'Bunny Bop',price:2000,kind:'bunny',skin:'#f7f9fc'},
     {id:'cat',name:'Kit Cat',price:3000,kind:'cat',skin:'#c9ced8'},
-    {id:'penguin',name:'Pip the Penguin',price:4000,kind:'penguin',skin:'#2b4472'}],
+    {id:'penguin',name:'Pip the Penguin',price:4000,kind:'penguin',skin:'#2b4472'},
+    {id:'noah',name:'Noah',price:500,skin:'#f1c7a0',hair:'#a0522d'},
+    {id:'zara',name:'Zara',price:500,skin:'#8d5a3b',hair:'#1f1510'},
+    {id:'luca',name:'Luca',price:700,skin:'#e8b48f',hair:'#e8c26a',freckles:true},
+    {id:'ivy',name:'Ivy',price:700,skin:'#fbe0c8',hair:'#d9344a'},
+    {id:'kofi',name:'Kofi',price:900,skin:'#6b4430',hair:'#1f1510'},
+    {id:'mei',name:'Mei',price:900,skin:'#f3d3b4',hair:'#2b1d16'}],
   jacket:[
     {id:'navy',name:'Navy',price:0,c:'#24508f',c2:'#3a6fb8',pants:'#4f86cc',trim:'#8cc8ff'},
     {id:'berry',name:'Berry',price:250,c:'#c93c63',c2:'#e2627f',pants:'#2c3e66',trim:'#ffd0db'},
@@ -365,7 +379,13 @@ const GEAR={
     {id:'tangerine',name:'Tangerine',price:800,c:'#f07d2f',c2:'#ff9e57',pants:'#24508f',trim:'#ffe2c4'},
     {id:'bubblegum',name:'Bubblegum',price:1000,c:'#ff8ab3',c2:'#ffadc9',pants:'#5a4f8f',trim:'#ffffff'},
     {id:'stormy',name:'Stormy Grey',price:1200,c:'#6b7a90',c2:'#8494aa',pants:'#3b4658',trim:'#e3eaf3'},
-    {id:'midnight',name:'Midnight',price:1500,c:'#1a2445',c2:'#2e3d6e',pants:'#4a5b8f',trim:'#ffe9a8'}],
+    {id:'midnight',name:'Midnight',price:1500,c:'#1a2445',c2:'#2e3d6e',pants:'#4a5b8f',trim:'#ffe9a8'},
+    {id:'cherry',name:'Cherry Red',price:900,c:'#d9344a',c2:'#ef5b6e',pants:'#2c3e66',trim:'#ffffff'},
+    {id:'lemon',name:'Lemonade',price:1000,c:'#ffe066',c2:'#fff2a8',pants:'#4f86cc',trim:'#ffffff'},
+    {id:'ocean',name:'Deep Ocean',price:1300,c:'#1d6fa3',c2:'#2f9bd6',pants:'#1f3f66',trim:'#bff3ff'},
+    {id:'grape',name:'Grape',price:1600,c:'#6b3fa0',c2:'#8b5fc8',pants:'#2e2450',trim:'#e9dcff'},
+    {id:'camo',name:'Snow Camo',price:2000,c:'#b8c6d6',c2:'#dfe8f2',pants:'#6b7a90',trim:'#ffffff'},
+    {id:'galaxy',name:'Galaxy',price:3000,c:'#2a1f5c',c2:'#46348f',pants:'#1a1440',trim:'#ffd76a'}],
   hat:[
     {id:'beanie',name:'Beanie',price:0,req:null,c:'#2c6fc0'},
     {id:'pompom',name:'Pom-pom',price:200,req:{flakes:60},c:'#ffffff'},
@@ -378,7 +398,15 @@ const GEAR={
     {id:'kitty',name:'Kitty Ears',price:1100,c:'#9aa3b5'},
     {id:'horns',name:'Viking Horns',price:2000,c:'#8a97ab'},
     {id:'flowers',name:'Flower Crown',price:2500,c:'#ff9ec4'},
-    {id:'crown',name:'Icicle Crown',price:3000,req:{stars:14},c:'#bff0ff'}],
+    {id:'crown',name:'Icicle Crown',price:3000,req:{stars:14},c:'#bff0ff'},
+    {id:'beanie_red',name:'Red Beanie',price:300,shape:'beanie',c:'#e0483a'},
+    {id:'beanie_mint',name:'Mint Beanie',price:300,shape:'beanie',c:'#4fd8b6'},
+    {id:'pompom_pink',name:'Pink Pom-pom',price:500,shape:'pompom',c:'#ff9ec4'},
+    {id:'earflap_green',name:'Forest Earflap',price:800,shape:'earflap',c:'#2f6d55'},
+    {id:'wolf',name:'Wolf Ears',price:1400,shape:'fox',c:'#8a97ab'},
+    {id:'bobble_purple',name:'Purple Bobble',price:1200,shape:'bobble',c:'#8b7cf0'},
+    {id:'helmet_gold',name:'Gold Helmet',price:3500,shape:'helmet',c:'#ffd76a'},
+    {id:'crown_gold',name:'Gold Crown',price:5000,shape:'crown',c:'#ffd76a'}],
   scarf:[
     {id:'sky',name:'Sky',price:0,req:null,c1:'#56b2ff',c2:'#3d97ea'},
     {id:'snow',name:'Snowstripe',price:150,req:{flakes:25},c1:'#ffffff',c2:'#2c6fc0'},
@@ -390,7 +418,13 @@ const GEAR={
     {id:'sunset',name:'Sunset',price:650,c1:'#ff9a5a',c2:'#ff6fa8'},
     {id:'evergreen',name:'Evergreen',price:800,c1:'#2f6d55',c2:'#d6f5e6'},
     {id:'longaurora',name:'Long Aurora',price:1800,c1:'#46c6c9',c2:'#8b7cf0',long:true},
-    {id:'gold',name:'Golden Hour',price:2200,req:{stars:10},c1:'#ffc451',c2:'#fff1c7',long:true}],
+    {id:'gold',name:'Golden Hour',price:2200,req:{stars:10},c1:'#ffc451',c2:'#fff1c7',long:true},
+    {id:'bee',name:'Bumblebee',price:400,c1:'#f2b630',c2:'#1b2b44'},
+    {id:'ocean',name:'Ocean',price:500,c1:'#1d6fa3',c2:'#bff3ff'},
+    {id:'grape',name:'Grape Soda',price:700,c1:'#8b5fc8',c2:'#e9dcff'},
+    {id:'cherry',name:'Cherry',price:900,c1:'#d9344a',c2:'#ffffff'},
+    {id:'longmint',name:'Long Mint',price:1600,c1:'#4fd8b6',c2:'#ffffff',long:true},
+    {id:'royal',name:'Royal Long',price:3000,c1:'#5b3fa8',c2:'#ffd76a',long:true}],
   board:[
     {id:'powder',name:'Powder Blue',price:0,req:null,c1:'#3d8ee0',c2:'#bfe3ff'},
     {id:'frost',name:'Frost Line',price:250,req:{flakes:40},c1:'#ffffff',c2:'#3d8ee0'},
@@ -403,7 +437,15 @@ const GEAR={
     {id:'lava',name:'Lava Glow',price:1400,c1:'#ff5a2a',c2:'#ffc14a',pat:'fade'},
     {id:'camo',name:'Snow Camo',price:2200,c1:'#dfe8f2',c2:'#9fb3c8',pat:'dots'},
     {id:'midnight',name:'Midnight Sky',price:3000,req:{stars:12},c1:'#14264d',c2:'#ffe9a8'},
-    {id:'galaxy',name:'Galaxy',price:4000,c1:'#3a2470',c2:'#ffffff',pat:'stars'}],
+    {id:'galaxy',name:'Galaxy',price:4000,c1:'#3a2470',c2:'#ffffff',pat:'stars'},
+    {id:'mintchip',name:'Mint Chip',price:600,c1:'#bff3e3',c2:'#2f6d55',pat:'dots'},
+    {id:'ocean',name:'Ocean Wave',price:800,c1:'#2f7fd6',c2:'#5fe0c0',pat:'fade'},
+    {id:'bee',name:'Bumblebee',price:1000,c1:'#f2b630',c2:'#1b2b44',pat:'stripes'},
+    {id:'cotton',name:'Cotton Candy',price:1200,c1:'#ffb3d1',c2:'#b9d8ff',pat:'fade'},
+    {id:'zebra',name:'Snow Zebra',price:1600,c1:'#ffffff',c2:'#2c3e66',pat:'stripes'},
+    {id:'cherrydot',name:'Cherry Dots',price:1800,c1:'#e2486b',c2:'#ffffff',pat:'dots'},
+    {id:'royal',name:'Royal Purple',price:3000,c1:'#5b3fa8',c2:'#ffd76a',pat:'stars'},
+    {id:'rainbowice',name:'Rainbow Ice',price:5000,c1:'#ff9ab8',c2:'#8cd8ff',pat:'fade'}],
   trail:[
     {id:'classic',name:'Classic Lines',price:0,col:'rgba(120,170,225,.32)'},
     {id:'sparkle',name:'Sparkle',price:300,col:'rgba(140,200,255,.45)',part:'tspark',pc:'#dff8ff'},
@@ -411,7 +453,20 @@ const GEAR={
     {id:'rainbow',name:'Rainbow Ice',price:1200,col:'rgba(255,130,170,.5)',rainbow:['rgba(255,130,170,.55)','rgba(255,210,110,.55)','rgba(110,220,190,.55)','rgba(120,170,255,.55)']},
     {id:'flakes',name:'Snowflake Trail',price:1500,col:'rgba(140,200,255,.4)',part:'tflake'},
     {id:'bubbles',name:'Bubbles',price:1800,col:'rgba(150,210,255,.4)',part:'bubble'},
-    {id:'gold',name:'Golden Glow',price:3500,col:'rgba(245,190,70,.6)',part:'tspark',pc:'#ffd76a'}],
+    {id:'gold',name:'Golden Glow',price:3500,col:'rgba(245,190,70,.6)',part:'tspark',pc:'#ffd76a'},
+    {id:'pink',name:'Pink Sparkle',price:800,col:'rgba(255,140,190,.5)',part:'tspark',pc:'#ffc2dd'},
+    {id:'lava',name:'Lava Line',price:1400,col:'rgba(255,110,50,.55)',part:'tspark',pc:'#ffb36a'},
+    {id:'night',name:'Night Sky',price:2200,col:'rgba(70,60,160,.45)',part:'tspark',pc:'#ffffff'},
+    {id:'mintflakes',name:'Mint Flakes',price:2600,col:'rgba(79,216,182,.45)',part:'tflake'},
+    {id:'rainbowbubbles',name:'Rainbow Bubbles',price:4500,col:'rgba(255,130,170,.45)',part:'bubble',rainbow:['rgba(255,130,170,.55)','rgba(255,210,110,.55)','rgba(110,220,190,.55)','rgba(120,170,255,.55)']}],
+  goggles:[
+    {id:'none',name:'No Goggles',price:0},
+    {id:'blue',name:'Blue Lens',price:400,lens:['#1d4f91','#5fc8ff'],strap:'#2c3e66'},
+    {id:'gold',name:'Gold Mirror',price:900,lens:['#b9831f','#ffe08a'],strap:'#1b2b44'},
+    {id:'pink',name:'Pink Pop',price:900,lens:['#d9447a','#ffb3d1'],strap:'#ffffff'},
+    {id:'green',name:'Northern Lights',price:1400,lens:['#1f8f6f','#8fffd6'],strap:'#2f6d55'},
+    {id:'purple',name:'Purple Haze',price:1800,lens:['#4b2f8f','#c9b3ff'],strap:'#2e2450'},
+    {id:'rainbow',name:'Rainbow Mirror',price:3500,lens:['#ff6fa8','#6fd6ff'],strap:'#ffffff',rainbow:true}],
   weather:[
     {id:'snow',name:'Light Snow',price:0,c:'#e9f4ff',desc:'Soft flakes drifting down.'},
     {id:'random',name:'Surprise Me',price:0,c:'linear-gradient(135deg,#ffd27a,#e9f4ff,#b9c7d8)',desc:'A different sky every run.'},
@@ -423,10 +478,14 @@ const GEAR={
     {id:'sleigh',name:'Sleigh Glide',price:900,bpm:100,style:'sleigh',prog:[{r:48,pad:[64,67,72,76]},{r:45,pad:[64,69,72,76]},{r:41,pad:[65,69,72,77]},{r:43,pad:[62,67,71,74]}],arp:[0,2,3,2,1,2,3,1]},
     {id:'lodge',name:'Night Lodge',price:1400,bpm:80,style:'lodge',prog:[{r:47,pad:[62,66,69,71]},{r:43,pad:[62,66,67,71]},{r:50,pad:[61,66,69,73]},{r:45,pad:[61,64,69,73]}],arp:[0,2,1,3,0,3,2,1]},
     {id:'town',name:'Town Bells',price:1100,bpm:104,style:'sleigh',prog:[{r:43,pad:[62,67,71,74]},{r:40,pad:[64,67,71,76]},{r:48,pad:[64,67,72,76]},{r:50,pad:[62,66,69,74]}],arp:[0,1,2,3,2,1,0,2]},
-    {id:'moon',name:'Moonlight Drift',price:1800,bpm:84,style:'lodge',prog:[{r:45,pad:[60,64,69,71]},{r:41,pad:[60,64,65,69]},{r:43,pad:[62,67,71,74]},{r:40,pad:[59,64,67,71]}],arp:[0,2,3,1,0,3,2,1]}]
+    {id:'moon',name:'Moonlight Drift',price:1800,bpm:84,style:'lodge',prog:[{r:45,pad:[60,64,69,71]},{r:41,pad:[60,64,65,69]},{r:43,pad:[62,67,71,74]},{r:40,pad:[59,64,67,71]}],arp:[0,2,3,1,0,3,2,1]},
+    {id:'summit',name:'Summit Rush',price:2200,bpm:116,style:'bright',prog:[{r:45,pad:[64,69,72,76]},{r:41,pad:[65,69,72,77]},{r:48,pad:[64,67,72,76]},{r:43,pad:[62,67,71,74]}],arp:[0,2,1,3,2,3,1,0]},
+    {id:'cocoa',name:'Hot Cocoa',price:2600,bpm:76,style:'lodge',prog:[{r:41,pad:[60,65,69,72]},{r:43,pad:[62,65,67,71]},{r:40,pad:[59,64,67,71]},{r:45,pad:[61,64,69,72]}],arp:[0,1,2,3,2,1,3,0]},
+    {id:'jingle',name:'Jingle Jam',price:3200,bpm:112,style:'sleigh',prog:[{r:50,pad:[62,66,69,74]},{r:47,pad:[62,66,71,74]},{r:43,pad:[62,67,71,74]},{r:45,pad:[61,64,69,73]}],arp:[0,2,1,3,0,3,1,2]}]
 };
-const SLOTS=['place','weather','rider','jacket','hat','scarf','board','trail','music'];
-const SLOT_NAMES={place:'Places',weather:'Weather',trail:'Trails',rider:'Riders',jacket:'Jackets',hat:'Hats',scarf:'Scarves',board:'Boards',music:'Music'};
+for(const sl in GEAR)for(const g of GEAR[sl])if(g.price>0)g.price*=5;
+const SLOTS=['place','weather','rider','jacket','hat','goggles','scarf','board','trail','music'];
+const SLOT_NAMES={goggles:'Goggles',place:'Places',weather:'Weather',trail:'Trails',rider:'Riders',jacket:'Jackets',hat:'Hats',scarf:'Scarves',board:'Boards',music:'Music'};
 const oldUnlocked=g=>!g.req||(g.req.flakes!=null&&save.flakes>=g.req.flakes)||(g.req.stars!=null&&Object.values(save.stars).reduce((s,a)=>s+a.filter(Boolean).length,0)>=g.req.stars);
 if(!save.owned){save.owned={};for(const sl of SLOTS)save.owned[sl]=GEAR[sl].filter(g=>g.price===0||(g.req&&oldUnlocked(g))).map(g=>g.id);}
 {const MAPREF={sunrise:600,twilight:1200,glacier:2000,aurora:3500};if(save.owned.map){for(const id of save.owned.map)if(MAPREF[id])save.coins+=MAPREF[id];delete save.owned.map;delete save.gear.map;}}
@@ -440,7 +499,17 @@ const CHALLENGES=[
   {id:'c2',name:'Pine Party',blurb:'Find your spin.',goals:[{k:'spin',n:360,t:'Land a 360'},{k:'grab',n:1,t:'Hold a grab for 1 second'},{k:'boosts',n:3,t:'Hit 3 speed boosts'}]},
   {id:'c3',name:'Ice Dancer',blurb:'Flips and slides.',goals:[{k:'flip',n:1,t:'Land a flip'},{k:'rails',n:3,t:'Slide 3 rails'},{k:'score',n:4000,t:'Score 4,000 points'}]},
   {id:'c4',name:'Crystal Combo',blurb:'Mix your tricks.',goals:[{k:'combo',n:360,t:'Land a 360 with a grab'},{k:'spin',n:540,t:'Land a 540'},{k:'flakes',n:60,t:'Collect 60 snowflakes'}]},
-  {id:'c5',name:'Big Mountain',blurb:'Everything at once.',goals:[{k:'flipspin',n:180,t:'Land a flip with a spin'},{k:'score',n:10000,t:'Score 10,000 points'},{k:'clean',n:0,t:'Finish with no wipeouts'}]}
+  {id:'c5',name:'Big Mountain',blurb:'Everything at once.',goals:[{k:'flipspin',n:180,t:'Land a flip with a spin'},{k:'score',n:10000,t:'Score 10,000 points'},{k:'clean',n:0,t:'Finish with no wipeouts'}]},
+  {id:'c6',name:'Backflip Basics',blurb:'Lean back and send it.',goals:[{k:'backflip',n:1,t:'Land a backflip'},{k:'flakes',n:40,t:'Collect 40 snowflakes'},{k:'grab',n:1.5,t:'Hold a grab for 1.5 seconds'}]},
+  {id:'c7',name:'Rail Rider',blurb:'Logs, fences and ice.',goals:[{k:'rails',n:5,t:'Slide 5 rails'},{k:'grind',n:2,t:'Slide one rail for 2 seconds'},{k:'score',n:6000,t:'Score 6,000 points'}]},
+  {id:'c8',name:'Combo Kid',blurb:'Keep the tricks coming.',goals:[{k:'chain',n:3,t:'Get a 3-trick combo'},{k:'spin',n:360,t:'Land a 360'},{k:'boosts',n:4,t:'Hit 4 speed boosts'}]},
+  {id:'c9',name:'Air Show',blurb:'Flips, flips, flips.',goals:[{k:'flip',n:3,t:'Land 3 flips'},{k:'backflip',n:2,t:'Land 2 backflips'},{k:'combo',n:540,t:'Land a 540 with a grab'}]},
+  {id:'c10',name:'Snowflake Sweep',blurb:'Grab every sparkle.',goals:[{k:'flakes',n:90,t:'Collect 90 snowflakes'},{k:'tricks',n:10,t:'Land 10 tricks'},{k:'clean',n:0,t:'Finish with no wipeouts'}]},
+  {id:'c11',name:'Speed Demon',blurb:'Go fast, go big.',goals:[{k:'boosts',n:6,t:'Hit 6 speed boosts'},{k:'spin',n:540,t:'Land a 540'},{k:'score',n:12000,t:'Score 12,000 points'}]},
+  {id:'c12',name:'Double Trouble',blurb:'Two flips in one jump.',goals:[{k:'double',n:2,t:'Land a double flip'},{k:'chain',n:4,t:'Get a 4-trick combo'},{k:'rails',n:4,t:'Slide 4 rails'}]},
+  {id:'c13',name:'Grab Master',blurb:'Hold it, style it.',goals:[{k:'grab',n:2,t:'Hold a grab for 2 seconds'},{k:'combo',n:720,t:'Land a 720 with a grab'},{k:'tricks',n:15,t:'Land 15 tricks'}]},
+  {id:'c14',name:'Mountain Legend',blurb:'Only the best.',goals:[{k:'score',n:20000,t:'Score 20,000 points'},{k:'chain',n:5,t:'Get a 5-trick combo'},{k:'clean',n:0,t:'Finish with no wipeouts'}]},
+  {id:'c15',name:'Powder Champion',blurb:'The final run.',goals:[{k:'flipspin',n:180,t:'Land a flip with a spin'},{k:'double',n:2,t:'Land a double flip'},{k:'score',n:25000,t:'Score 25,000 points'}]}
 ];
 const gearById=(slot,id)=>GEAR[slot].find(g=>g.id===id)||GEAR[slot][0];
 const totalStars=()=>Object.values(save.stars).reduce((s,a)=>s+a.filter(Boolean).length,0);
@@ -619,7 +688,7 @@ function aiControl(dt){
 }
 
 /* ---------- Player ---------- */
-function jump(vz){P.air=true;P.vz=vz;P.z=Math.max(P.z,1);P.spinAcc=0;P.flipsJ=0;P.frontJ=0;P.backJ=0;P.arrowFlip=false;P.flipDir=1;P.fromRamp=false;P.grabT=0;P.flipping=false;P.flip=0;sfx('jump');}
+function jump(vz){P.blockUp=!!keys.up;P.blockDown=!!keys.down;P.air=true;P.vz=vz;P.z=Math.max(P.z,1);P.spinAcc=0;P.flipsJ=0;P.frontJ=0;P.backJ=0;P.arrowFlip=false;P.flipDir=1;P.fromRamp=false;P.grabT=0;P.flipping=false;P.flip=0;sfx('jump');}
 function updatePlayer(dt,c){
   P.prevY=P.y;P.inv=Math.max(0,P.inv-dt);P.boostT=Math.max(0,P.boostT-dt);
   if(P.state==='wipe'){updateWipe(dt);return;}
@@ -648,9 +717,10 @@ function updatePlayer(dt,c){
     if(c.left||c.right){const d=c.right?1:-1;if(P.spinAcc<.05)P.spinDir=d;P.spin+=d*SPIN*dt;P.spinAcc+=SPIN*dt;}
     else{const tg=Math.round(P.spin/Math.PI)*Math.PI,d=tg-P.spin,st=Math.sign(d)*Math.min(Math.abs(d),7*dt);P.spin+=st;P.spinAcc+=Math.abs(st);}
     if(!c.up)P.blockUp=false;if(!c.down)P.blockDown=false;
-    if(!P.flipping&&P.z>10){
-      if(P.fromRamp&&!finishing&&c.up&&!P.blockUp){P.flipping=true;P.flipDir=1;P.arrowFlip=true;}
-      else if(P.fromRamp&&!finishing&&c.down&&!P.blockDown){P.flipping=true;P.flipDir=-1;P.arrowFlip=true;}
+    const airLeft=(P.vz+Math.sqrt(Math.max(0,P.vz*P.vz+2*GRAV*P.z)))/GRAV;
+    if(!P.flipping&&P.z>10&&airLeft>TAU/FLIPV*.8){
+      if(!finishing&&c.up&&!P.blockUp){P.flipping=true;P.flipDir=1;P.arrowFlip=true;}
+      else if(!finishing&&c.down&&!P.blockDown){P.flipping=true;P.flipDir=-1;P.arrowFlip=true;}
       else if(c.jumpEdge){P.flipping=true;P.flipDir=1;P.arrowFlip=false;}
     }
     if(P.flipping){P.flip+=FLIPV*dt;if(P.flip>=TAU){P.flip=0;P.flipping=false;P.flipsJ++;
@@ -688,7 +758,7 @@ function land(onRail){
 }
 const COMBO_T=3;
 const comboMult=()=>Math.min(4,1+.5*Math.max(0,game.combo.n-1));
-function comboHit(){game.combo.n++;game.combo.t=COMBO_T;return comboMult();}
+function comboHit(){game.combo.n++;if(run)run.maxChain=Math.max(run.maxChain||0,game.combo.n);game.combo.t=COMBO_T;return comboMult();}
 function comboDrop(){game.combo.n=0;game.combo.t=0;}
 function addPoints(pts){if(!run)return 0;if(run.ch)run.score+=pts;const c=pts/2;run.coins+=c;save.coins+=c;return c;}
 const coinTxt=c=>'+'+(Number.isInteger(c)?c:c.toFixed(1))+' coins';
@@ -705,7 +775,7 @@ function trickLanded(deg,grab,flips,sketchy){
   popup(label,run?ctag+(game.mode==='challenge'?'+'+pts.toLocaleString()+' points   '+coinTxt(cn):coinTxt(cn)):pick(['Smooth','So clean','Lovely','Stylish','Sweet','Buttery']));
   if(sketchy)comboDrop();
   if(run){
-   run.bestSpin=Math.max(run.bestSpin,deg);run.bestGrab=Math.max(run.bestGrab,grab);run.flips+=flips;
+   run.bestSpin=Math.max(run.bestSpin,deg);run.bestGrab=Math.max(run.bestGrab,grab);run.flips+=flips;run.tricks=(run.tricks||0)+1;run.backflips=(run.backflips||0)+(P.backJ||0);run.bestFlipsJump=Math.max(run.bestFlipsJump||0,flips);
     if(grab&&deg)run.bestCombo=Math.max(run.bestCombo,deg);
     if(flips&&deg>=180)run.flipSpin=true;
     if(pts>run.bestPts){run.bestPts=pts;run.bestTrick=label;}
@@ -735,7 +805,7 @@ function endGrind(){
   const cn=addPoints(pts);
   const ctag=mult>1?`x${mult} combo   `:'';
   popup(name,run?ctag+(game.mode==='challenge'?'+'+pts.toLocaleString()+' points   '+coinTxt(cn):coinTxt(cn)):t.toFixed(1)+' seconds');
-  if(run){run.rails++;if(pts>run.bestPts){run.bestPts=pts;run.bestTrick=name;}checkGoals();}
+  if(run){run.rails++;run.tricks=(run.tricks||0)+1;run.bestGrind=Math.max(run.bestGrind||0,t);if(pts>run.bestPts){run.bestPts=pts;run.bestTrick=name;}checkGoals();}
   cheer();
 }
 function wipe(){
@@ -792,8 +862,8 @@ function updateParts(dt){
 function popup(text,sub){popups.push({text,sub,t:0,life:1.7,x:(P.x-cam.x)*S+W/2,y:(P.y-cam.y)*S+H*AY-110*S});if(popups.length>3)popups.shift();}
 
 /* ---------- Runs and goals ---------- */
-function goalDone(g,R){switch(g.k){case'spin':return R.bestSpin>=g.n;case'flakes':return R.flakes>=g.n;case'rails':return R.rails>=g.n;case'grab':return R.bestGrab>=g.n;case'boosts':return R.boosts>=g.n;case'flip':return R.flips>=g.n;case'score':return R.score>=g.n;case'combo':return R.bestCombo>=g.n;case'flipspin':return R.flipSpin;case'clean':return R.finished&&R.wipes===0;}return false;}
-function goalProg(g,R){if(['flakes','rails','boosts'].includes(g.k))return`${Math.min(R[g.k],g.n)}/${g.n}`;if(g.k==='score')return'';return'';}
+function goalDone(g,R){switch(g.k){case'spin':return R.bestSpin>=g.n;case'flakes':return R.flakes>=g.n;case'rails':return R.rails>=g.n;case'grab':return R.bestGrab>=g.n;case'boosts':return R.boosts>=g.n;case'flip':return R.flips>=g.n;case'score':return R.score>=g.n;case'combo':return R.bestCombo>=g.n;case'flipspin':return R.flipSpin;case'backflip':return(R.backflips||0)>=g.n;case'chain':return(R.maxChain||0)>=g.n;case'tricks':return(R.tricks||0)>=g.n;case'grind':return(R.bestGrind||0)>=g.n;case'double':return(R.bestFlipsJump||0)>=g.n;case'clean':return R.finished&&R.wipes===0;}return false;}
+function goalProg(g,R){if(['flakes','rails','boosts','tricks','backflip'].includes(g.k)){const v=g.k==='backflip'?R.backflips||0:R[g.k]||0;return`${Math.min(v,g.n)}/${g.n}`;}if(g.k==='flip'&&g.n>1)return`${Math.min(R.flips,g.n)}/${g.n}`;if(g.k==='score')return'';return'';}
 function checkGoals(){
   if(!run||!run.ch)return;
   run.ch.goals.forEach((g,i)=>{if(!run.done[i]&&goalDone(g,run)){run.done[i]=true;toast('Goal complete: '+g.t);sfx('goal');}});
@@ -859,7 +929,7 @@ function finishRun(){
 const SCREENS=['menu','challenges','locker','pause','results','race'];
 function showScreen(id){SCREENS.forEach(s=>$(s).hidden=s!==id);}
 function starSvg(on){return`<svg class="star${on?' on':''}" viewBox="0 0 24 24" aria-label="${on?'Star earned':'Star not earned'}"><path d="M12 2.5l2.9 6.2 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.4 1.5-6.7-5.1-4.6 6.8-.7z"/></svg>`;}
-function updateMenuStats(){$('menuCoins').textContent=coinStr();$('menuStars').textContent=totalStars();$('btnSound').textContent=save.muted?'Sound off':'Sound on';}
+function updateMenuStats(){$('menuCoins').textContent=coinStr();$('menuStars').textContent=totalStars();$('menuStarsTotal').textContent=CHALLENGES.length*3;$('btnSound').textContent=save.muted?'Sound off':'Sound on';}
 function toMenu(){if(run){persist();run=null;}leaveRoom();game.mode='free';game.state='menu';$('hud').hidden=true;$('touch').hidden=true;showScreen('menu');updateMenuStats();if(P.state!=='ride'||P.y>BIOME_LEN*8)resetWorld();}
 function pauseGame(){if(game.state!=='play')return;game.state='paused';showScreen('pause');for(const k in keys)keys[k]=false;}
 function resumeGame(){if(game.state!=='paused')return;showScreen(null);game.state='play';if(document.activeElement)document.activeElement.blur();}
@@ -876,6 +946,7 @@ const COIN_SVG=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f
 const NOTE_SVG='<svg viewBox="0 0 24 24" fill="#2f7fd6"><path d="M9 17.5a3 3 0 1 1-2-2.8V5l11-2v11.5a3 3 0 1 1-2-2.8V6.2L9 7.6z"/></svg>';
 function swatch(sl,g){
   if(sl==='place')return`<span class="sw map" style="background:linear-gradient(135deg,${g.c1} 0 50%,${g.c2} 50%);border:1px solid #bcd6f2"></span>`;
+  if(sl==='goggles')return`<span class="sw map" style="background:${g.lens?`linear-gradient(135deg,${g.lens[0]},${g.lens[1]})`:'#e9f4ff'};border:2px solid ${g.strap||'#bcd6f2'}"></span>`;
   if(sl==='trail')return`<span class="sw map" style="background:${g.rainbow?'linear-gradient(90deg,#ff82aa,#ffd26e,#6edcbe,#78aaff)':g.col};border:1px solid #bcd6f2"></span>`;
   if(sl==='rider')return`<span class="sw rider" style="background:${g.skin};border:2px solid #bcd6f2"></span>`;
   if(sl==='jacket')return`<span class="sw jacket" style="background:linear-gradient(90deg,${g.c2} 0 40%,${g.c} 40%);border:1px solid #bcd6f2"></span>`;
@@ -1052,6 +1123,7 @@ $('btnCreateRace').onclick=()=>{sfx('ui');joinRoom(makeCode());};
 $('btnJoinRace').onclick=()=>{const c=$('raceCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==4){raceMsg('Race codes are 4 letters or numbers, like K7QP.');return;}sfx('ui');raceMsg('');joinRoom(c);};
 $('raceCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('btnJoinRace').click();});
 $('btnStartRace').onclick=()=>{sfx('ui');startRaceAsHost();};
+CHALLENGES.forEach((c,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=c.name+' challenge';$('pickSel').appendChild(o);});
 $('pickSel').addEventListener('change',()=>{RC.pick=+$('pickSel').value;trackMe();renderLobby();});
 $('btnLeaveRace').onclick=()=>{sfx('ui');leaveRoom();$('raceSetup').hidden=false;$('raceLobby').hidden=true;};
 $('raceName').addEventListener('change',()=>{save.name=cleanName($('raceName').value);$('raceName').value=save.name;persist();});
@@ -1421,28 +1493,30 @@ function drawFace(hx,hy,rd){
   if(k==='kid'){ctx.strokeStyle='#1b2b44';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(hx,hy+3,2.6,.2,Math.PI-.2);ctx.stroke();}
   else if(k!=='penguin'){ctx.strokeStyle='#1b2b44';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(hx,hy+3.4);ctx.lineTo(hx,hy+4.6);ctx.arc(hx-1.4,hy+4.6,1.4,0,Math.PI*.9);ctx.moveTo(hx,hy+4.6);ctx.arc(hx+1.4,hy+4.6,1.4,Math.PI,Math.PI*.1,true);ctx.stroke();}
 }
-function drawHead(hx,hy,hat,t,rd){
-  drawFace(hx,hy,rd);
-  const c=hat.c;
-  if(hat.id==='helmet'){ctx.fillStyle=c;ctx.beginPath();ctx.arc(hx,hy-1,10.5,Math.PI,0);ctx.lineTo(hx+10.5,hy-1);ctx.lineTo(hx-10.5,hy-1);ctx.fill();ctx.fillStyle='rgba(255,255,255,.9)';ell(hx-4,hy-7,3,1.6);
+function drawGoggles(hx,hy,gg){if(!gg||!gg.lens)return;ctx.fillStyle=gg.strap;ctx.fillRect(hx-10,hy-1.6,20,3.2);
+  for(const s of[-1,1]){const gx=hx+s*3.6;const g=ctx.createLinearGradient(gx,hy-3,gx,hy+3);if(gg.rainbow){g.addColorStop(0,'#ff6fa8');g.addColorStop(.5,'#ffd76a');g.addColorStop(1,'#6fd6ff');}else{g.addColorStop(0,gg.lens[0]);g.addColorStop(1,gg.lens[1]);}ctx.fillStyle=g;rrect(gx-3.6,hy-2.8,7.2,5.6,2.4);ctx.fill();ctx.strokeStyle='rgba(15,42,77,.5)';ctx.lineWidth=.8;ctx.stroke();ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillRect(gx-2.4,hy-2,2,1);}}
+function drawHead(hx,hy,hat,t,rd,gg){
+  drawFace(hx,hy,rd);drawGoggles(hx,hy+.3,gg);
+  const c=hat.c,hid=hat.shape||hat.id;
+  if(hid==='helmet'){ctx.fillStyle=c;ctx.beginPath();ctx.arc(hx,hy-1,10.5,Math.PI,0);ctx.lineTo(hx+10.5,hy-1);ctx.lineTo(hx-10.5,hy-1);ctx.fill();ctx.fillStyle='rgba(255,255,255,.9)';ell(hx-4,hy-7,3,1.6);
     const g=ctx.createLinearGradient(hx,hy-6,hx,hy-1);g.addColorStop(0,'#1d4f91');g.addColorStop(1,'#5fc8ff');ctx.fillStyle=g;rrect(hx-8,hy-6.5,16,5,2.5);ctx.fill();ctx.fillStyle='rgba(255,255,255,.7)';ctx.fillRect(hx-5.5,hy-5.6,4,1.3);return;}
-  if(hat.id==='earmuffs'||hat.id==='flowers'){const hairC=(rd.kind&&rd.kind!=='kid')?rd.skin:(rd.hair||'#6b4430');ctx.fillStyle=hairC;ctx.beginPath();ctx.arc(hx,hy-1,9.3,Math.PI,0);ctx.fill();
-    if(hat.id==='earmuffs'){ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(hx,hy-1,10,Math.PI*1.05,-Math.PI*.05);ctx.stroke();for(const s of[-1,1]){ell(hx+s*9.5,hy,4.6,4.6,c);ell(hx+s*9.5,hy-1,2.4,2.4,'rgba(255,255,255,.55)');}}
+  if(hid==='earmuffs'||hid==='flowers'){const hairC=(rd.kind&&rd.kind!=='kid')?rd.skin:(rd.hair||'#6b4430');ctx.fillStyle=hairC;ctx.beginPath();ctx.arc(hx,hy-1,9.3,Math.PI,0);ctx.fill();
+    if(hid==='earmuffs'){ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(hx,hy-1,10,Math.PI*1.05,-Math.PI*.05);ctx.stroke();for(const s of[-1,1]){ell(hx+s*9.5,hy,4.6,4.6,c);ell(hx+s*9.5,hy-1,2.4,2.4,'rgba(255,255,255,.55)');}}
     else{const cols=['#ff9ec4','#ffd76a','#ffffff','#b9a8ff','#4fd8b6'];for(let i=0;i<7;i++){const an=Math.PI+i*Math.PI/6,fx=hx+Math.cos(an)*9,fy=hy-1+Math.sin(an)*9;ctx.fillStyle=cols[i%5];for(let j=0;j<5;j++)ell(fx+Math.cos(j*1.256)*1.9,fy+Math.sin(j*1.256)*1.9,1.4,1.4);ell(fx,fy,1,1,'#f2b630');}}
     return;}
-  if(hat.id==='holly'){ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(hx-10,hy-4);ctx.quadraticCurveTo(hx-2,hy-24,hx+14,hy-16);ctx.lineTo(hx+10,hy-4);ctx.fill();ell(hx+14,hy-16,3.6,3.6,'#ffffff');ctx.fillStyle='#ffffff';rrect(hx-10.5,hy-6,21,5,2.5);ctx.fill();ell(hx-5,hy-8,1.8,1.8,'#2f8f5b');ell(hx-3,hy-9,1.4,1.4,'#d9344a');return;}
-  if(hat.id==='horns'){for(const s of[-1,1]){ctx.fillStyle='#f4ead6';ctx.beginPath();ctx.moveTo(hx+s*7,hy-7);ctx.quadraticCurveTo(hx+s*16,hy-9,hx+s*15,hy-20);ctx.quadraticCurveTo(hx+s*12,hy-11,hx+s*5,hy-4);ctx.fill();}
+  if(hid==='holly'){ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(hx-10,hy-4);ctx.quadraticCurveTo(hx-2,hy-24,hx+14,hy-16);ctx.lineTo(hx+10,hy-4);ctx.fill();ell(hx+14,hy-16,3.6,3.6,'#ffffff');ctx.fillStyle='#ffffff';rrect(hx-10.5,hy-6,21,5,2.5);ctx.fill();ell(hx-5,hy-8,1.8,1.8,'#2f8f5b');ell(hx-3,hy-9,1.4,1.4,'#d9344a');return;}
+  if(hid==='horns'){for(const s of[-1,1]){ctx.fillStyle='#f4ead6';ctx.beginPath();ctx.moveTo(hx+s*7,hy-7);ctx.quadraticCurveTo(hx+s*16,hy-9,hx+s*15,hy-20);ctx.quadraticCurveTo(hx+s*12,hy-11,hx+s*5,hy-4);ctx.fill();}
     ctx.fillStyle=c;ctx.beginPath();ctx.arc(hx,hy-3,9.8,Math.PI,0);ctx.fill();ctx.fillStyle='#6b7a90';ctx.fillRect(hx-10,hy-5,20,3.5);ctx.fillRect(hx-1.5,hy-12.5,3,8);ctx.fillStyle='rgba(255,255,255,.7)';ell(hx-4,hy-9,2.6,1.4);return;}
-  if(hat.id==='crown'){ctx.fillStyle=c;ctx.fillRect(hx-9,hy-7,18,4);
+  if(hid==='crown'){ctx.fillStyle=c;ctx.fillRect(hx-9,hy-7,18,4);
     for(let i=0;i<5;i++){const ix=hx-7+i*3.5,hh=i%2?7:10;poly([ix-2,hy-7,ix+2,hy-7,ix,hy-7-hh],i%2?'#ffffff':c);}star4(hx,hy-17,3,(Math.sin(t*4)+1)/2,'#ffffff');return;}
   ctx.fillStyle=c;ctx.beginPath();ctx.arc(hx,hy-3,9.6,Math.PI,0);ctx.fill();
-  const band=hat.id==='pompom'?'#2f7fd6':hat.id==='fox'||hat.id==='bobble'?'#ffffff':hat.id==='kitty'?'#f5c6d3':'#8cc8ff';ctx.fillStyle=band;rrect(hx-10,hy-5,20,4.5,2);ctx.fill();
-  if(hat.id==='pompom'){ell(hx,hy-13.5,4.2,4.2,'#2f7fd6');}
-  if(hat.id==='bobble'){poly([hx-7,hy-9,hx+7,hy-9,hx+2,hy-24],c);ctx.fillStyle='#ffffff';ctx.fillRect(hx-5,hy-14,10,2.2);ctx.fillRect(hx-3,hy-19,6,2);ell(hx+2,hy-25,3.4,3.4,'#ffffff');}
-  if(hat.id==='kitty'){for(const s of[-1,1]){poly([hx+s*3,hy-10.5,hx+s*9,hy-18,hx+s*9,hy-7.5],c);poly([hx+s*4.6,hy-10.5,hx+s*8,hy-15,hx+s*8,hy-9.5],'#f5c6d3');}}
-  if(hat.id==='earflap'){ctx.fillStyle=c;rrect(hx-11.5,hy-4,4.5,10,2.2);ctx.fill();rrect(hx+7,hy-4,4.5,10,2.2);ctx.fill();ctx.strokeStyle='#8cc8ff';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(hx-9.3,hy+6);ctx.lineTo(hx-9.6,hy+11);ctx.moveTo(hx+9.3,hy+6);ctx.lineTo(hx+9.6,hy+11);ctx.stroke();}
-  if(hat.id==='fox'){for(const s of[-1,1]){poly([hx+s*3,hy-10.5,hx+s*9.5,hy-18.5,hx+s*9,hy-7.5],c);poly([hx+s*5,hy-10.5,hx+s*8.6,hy-15.5,hx+s*8.2,hy-9.5],'#ffffff');}}
-  if(hat.id==='beanie'){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;for(let i=-6;i<=6;i+=3){ctx.beginPath();ctx.moveTo(hx+i,hy-5.5);ctx.lineTo(hx+i*.7,hy-11);ctx.stroke();}}
+  const band=hid==='pompom'?'#2f7fd6':hid==='fox'||hid==='bobble'?'#ffffff':hid==='kitty'?'#f5c6d3':'#8cc8ff';ctx.fillStyle=band;rrect(hx-10,hy-5,20,4.5,2);ctx.fill();
+  if(hid==='pompom'){ell(hx,hy-13.5,4.2,4.2,'#2f7fd6');}
+  if(hid==='bobble'){poly([hx-7,hy-9,hx+7,hy-9,hx+2,hy-24],c);ctx.fillStyle='#ffffff';ctx.fillRect(hx-5,hy-14,10,2.2);ctx.fillRect(hx-3,hy-19,6,2);ell(hx+2,hy-25,3.4,3.4,'#ffffff');}
+  if(hid==='kitty'){for(const s of[-1,1]){poly([hx+s*3,hy-10.5,hx+s*9,hy-18,hx+s*9,hy-7.5],c);poly([hx+s*4.6,hy-10.5,hx+s*8,hy-15,hx+s*8,hy-9.5],'#f5c6d3');}}
+  if(hid==='earflap'){ctx.fillStyle=c;rrect(hx-11.5,hy-4,4.5,10,2.2);ctx.fill();rrect(hx+7,hy-4,4.5,10,2.2);ctx.fill();ctx.strokeStyle='#8cc8ff';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(hx-9.3,hy+6);ctx.lineTo(hx-9.6,hy+11);ctx.moveTo(hx+9.3,hy+6);ctx.lineTo(hx+9.6,hy+11);ctx.stroke();}
+  if(hid==='fox'){for(const s of[-1,1]){poly([hx+s*3,hy-10.5,hx+s*9.5,hy-18.5,hx+s*9,hy-7.5],c);poly([hx+s*5,hy-10.5,hx+s*8.6,hy-15.5,hx+s*8.2,hy-9.5],'#ffffff');}}
+  if(hid==='beanie'){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=1;for(let i=-6;i<=6;i+=3){ctx.beginPath();ctx.moveTo(hx+i,hy-5.5);ctx.lineTo(hx+i*.7,hy-11);ctx.stroke();}}
 }
 function drawScarf(nx,ny,sc,t,long,flow){
   const n=long?12:7;let px=nx,py=ny;
@@ -1496,7 +1570,7 @@ function drawFlipRider(o){
     ell(hL.x,hL.y,2.8,2.8,'#1b2b44');ell(hR.x,hR.y,2.8,2.8,'#1b2b44');
     const n=sc.long?10:6,vx=neck.x-headPrev.x,vy=neck.y-headPrev.y,vl=Math.hypot(vx,vy)||1;let px=neck.x,py=neck.y;
     for(let i=1;i<=n;i++){const x=neck.x+vx/vl*i*4+Math.sin(o.t*12+i)*1.5,y=neck.y+vy/vl*i*4+Math.cos(o.t*12+i)*1.5;ctx.strokeStyle=i%2?sc.c1:sc.c2;ctx.lineWidth=5-i*.15;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x,y);ctx.stroke();px=x;py=y;}
-    ctx.save();ctx.translate(head.x,head.y);ctx.rotate(Math.atan2(head.y-hip.y,head.x-hip.x)+Math.PI/2);drawHead(0,0,ht,o.t,rd);drawScarfWrap(0,9.5,sc);ctx.restore();
+    ctx.save();ctx.translate(head.x,head.y);ctx.rotate(Math.atan2(head.y-hip.y,head.x-hip.x)+Math.PI/2);drawHead(0,0,ht,o.t,rd,gearById('goggles',g.goggles));drawScarfWrap(0,9.5,sc);ctx.restore();
   };
   const bD=(nose.d+tail.d)/2,yD=(hip.d+head.d)/2;
   if(bD>yD){drawBoardSeg();drawBody();}else{drawBody();drawBoardSeg();}
@@ -1522,7 +1596,7 @@ function drawRider(o){
   ctx.fillStyle=jk.c2;rrect(-hw,-22,hw*2*.45,23,8);ctx.fill();
   ctx.strokeStyle=jk.trim;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(0,-1);ctx.stroke();
   drawScarf(0,-22,sc,o.t,sc.long,Math.sin(o.spin));
-  drawHead(0,-31,ht,o.t,rd);
+  drawHead(0,-31,ht,o.t,rd,gearById('goggles',g.goggles));
   drawScarfWrap(0,-21,sc);
   ctx.restore();ctx.restore();
 }
@@ -1532,7 +1606,7 @@ function drawPlayer(){
   ctx.save();ctx.translate(P.x,P.y-P.z);ctx.scale(zs,zs);
   if(P.inv>0&&((P.inv*10)|0)%2)ctx.globalAlpha=.55;
   if(P.state==='wipe'&&P.banked){
-    const t=P.wipeT;drawBank({x:0,y:4});drawHead(0,-14,gearById('hat',save.gear.hat),game.t,gearById('rider',save.gear.rider));
+    const t=P.wipeT;drawBank({x:0,y:4});drawHead(0,-14,gearById('hat',save.gear.hat),game.t,gearById('rider',save.gear.rider),gearById('goggles',save.gear.goggles));
     if(t>.95){ctx.strokeStyle=gearById('jacket',save.gear.jacket).c;ctx.lineWidth=4.5;ctx.lineCap='round';const w=Math.sin(game.t*14)*4;ctx.beginPath();ctx.moveTo(10,-4);ctx.lineTo(19,-17+w);ctx.stroke();ctx.fillStyle='#1b2b44';ell(19,-17+w,2.6,2.6);}
     ctx.fillStyle='#ffffff';ell(-14,0,9,6);ell(14,1,8,6);
   }else{
