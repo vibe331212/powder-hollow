@@ -2095,6 +2095,7 @@ function drawHouseNew(){
 $('vBagBtn').onclick=()=>{sfx('ui');renderBag();showScreen('vBag');game.state='vmenu';$('vhud').hidden=true;$('bMsg').textContent='Buy food at the Cafeteria. Frozen burritos need the microwave in your kitchen first.';};
 $('bBack').onclick=()=>{sfx('ui');closeBag();};
 
+try{if(new URLSearchParams(location.search).get('bonus')==='snowfall300'&&!save.bonus300){save.bonus300=true;save.coins+=300000;persist();setTimeout(()=>{try{updateMenuStats();}catch(e){}vToast('Bonus! You got 300,000 coins.');},600);}}catch(e){}
 buildShelves();
 
 /* ---------- Main loop ---------- */
