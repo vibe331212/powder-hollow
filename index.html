@@ -124,6 +124,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
 .field input,.codein{font:inherit;font-size:16px;font-weight:700;color:var(--deep);background:var(--snow);border:2px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
 .field input:focus,.codein:focus{outline:3px solid var(--sky);outline-offset:1px}
 .joinrow{display:flex;gap:10px;flex-wrap:wrap}
+.picksel{font:inherit;font-size:15px;font-weight:700;color:var(--deep);background:var(--snow);border:2px solid var(--line);border-radius:12px;padding:10px 12px}
 .codein{flex:1 1 120px;text-transform:uppercase;letter-spacing:.3em;font-family:var(--f-display);font-size:22px;text-align:center}
 .joinrow .btn{flex:1 1 120px}
 .codebox{display:grid;gap:4px;justify-items:center;text-align:center;background:var(--snow);border:2px dashed var(--sky);border-radius:18px;padding:16px}
@@ -268,6 +269,8 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       </div>
       <div id="raceLobby" class="stack" hidden>
         <div class="codebox"><span>Race code</span><b id="lobbyCode">----</b><small>Friends open Race Friends and type this code to join.</small></div>
+        <div class="field"><span id="pickText">You choose what everyone plays:</span>
+          <select id="pickSel" class="picksel"><option value="-1">Race to the bottom</option><option value="0">First Tracks challenge</option><option value="1">Pine Party challenge</option><option value="2">Ice Dancer challenge</option><option value="3">Crystal Combo challenge</option><option value="4">Big Mountain challenge</option></select></div>
         <ul class="goals" id="lobbyPlayers"></ul>
         <p class="lockline" id="lobbyStatus"></p>
         <button class="btn primary small" id="btnStartRace" hidden>Start race</button>
@@ -687,7 +690,7 @@ const COMBO_T=3;
 const comboMult=()=>Math.min(4,1+.5*Math.max(0,game.combo.n-1));
 function comboHit(){game.combo.n++;game.combo.t=COMBO_T;return comboMult();}
 function comboDrop(){game.combo.n=0;game.combo.t=0;}
-function addPoints(pts){if(!run)return 0;if(game.mode==='challenge')run.score+=pts;const c=pts/2;run.coins+=c;save.coins+=c;return c;}
+function addPoints(pts){if(!run)return 0;if(run.ch)run.score+=pts;const c=pts/2;run.coins+=c;save.coins+=c;return c;}
 const coinTxt=c=>'+'+(Number.isInteger(c)?c:c.toFixed(1))+' coins';
 function trickLanded(deg,grab,flips,sketchy){
   const names=[];let pts=0;
@@ -792,13 +795,14 @@ function popup(text,sub){popups.push({text,sub,t:0,life:1.7,x:(P.x-cam.x)*S+W/2,
 function goalDone(g,R){switch(g.k){case'spin':return R.bestSpin>=g.n;case'flakes':return R.flakes>=g.n;case'rails':return R.rails>=g.n;case'grab':return R.bestGrab>=g.n;case'boosts':return R.boosts>=g.n;case'flip':return R.flips>=g.n;case'score':return R.score>=g.n;case'combo':return R.bestCombo>=g.n;case'flipspin':return R.flipSpin;case'clean':return R.finished&&R.wipes===0;}return false;}
 function goalProg(g,R){if(['flakes','rails','boosts'].includes(g.k))return`${Math.min(R[g.k],g.n)}/${g.n}`;if(g.k==='score')return'';return'';}
 function checkGoals(){
-  if(!run||game.mode!=='challenge')return;
+  if(!run||!run.ch)return;
   run.ch.goals.forEach((g,i)=>{if(!run.done[i]&&goalDone(g,run)){run.done[i]=true;toast('Goal complete: '+g.t);sfx('goal');}});
+  if(game.mode==='race'&&!run.finished&&run.done.every(Boolean)){run.finished=true;game.endT=0;raceFinished();toast('You finished the challenge!');game.fwT=3.4;game.fwNext=0;cheer();}
   renderGoals();
 }
 const CHECK='<svg viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>';
 function renderGoals(){
-  if(!run||game.mode!=='challenge')return;
+  if(!run||!run.ch)return;
   $('hudGoals').innerHTML=run.ch.goals.map((g,i)=>{const d=run.done[i],miss=g.k==='clean'&&run.wipes>0;return`<li class="${d?'done':miss?'missed':''}"><span class="box">${d?CHECK:''}</span><span>${g.t}</span><span class="prog">${d?'':goalProg(g,run)}</span></li>`;}).join('');
 }
 let toastTimer=0;
@@ -814,8 +818,8 @@ function startRun(mode,ch){
   else{game.seedRng=null;buildRoute();resetWorld();comboDrop();resolveWeather();}
   showScreen(null);
   $('hud').hidden=false;$('touch').hidden=!isTouch;
-  $('hudMode').textContent=mode==='free'?'Free Ride':mode==='race'?'Race '+RC.code:ch.name;
-  $('hudScore').hidden=mode==='free';$('hudProgress').hidden=false;$('hudGoals').hidden=mode!=='challenge';
+  $('hudMode').textContent=mode==='free'?'Free Ride':mode==='race'?(ch?ch.name+' race ':'Race ')+RC.code:ch.name;
+  $('hudScore').hidden=mode==='free';$('hudProgress').hidden=false;$('hudGoals').hidden=!ch;
   $('btnRestart').hidden=mode==='race';
   renderGoals();
   for(const k in keys)keys[k]=false;jumpEdge=false;
@@ -825,7 +829,7 @@ function startRun(mode,ch){
 }
 function finishRun(){
   const R=run;persist();
-  if(R.mode==='race'){RC.lastRun=R;run=null;game.state='results';$('hud').hidden=true;$('touch').hidden=true;showRaceResults();showScreen('results');updateMenuStats();return;}
+  if(R.mode==='race'){RC.lastRun=R;if(R.ch){const prev=save.stars[R.ch.id]||[false,false,false];save.stars[R.ch.id]=prev.map((p,i)=>p||R.done[i]);persist();}run=null;game.state='results';$('hud').hidden=true;$('touch').hidden=true;showRaceResults();showScreen('results');updateMenuStats();return;}
   $('btnAgain').textContent='Ride again';
   let earnedNew=0;
   if(R.mode==='challenge'){
@@ -862,9 +866,10 @@ function resumeGame(){if(game.state!=='paused')return;showScreen(null);game.stat
 function renderChallenges(){
   $('chList').innerHTML=CHALLENGES.map((ch,i)=>{
     const st=save.stars[ch.id]||[false,false,false];const prev=i===0||(save.stars[CHALLENGES[i-1].id]||[]).some(Boolean);
-    return`<div class="card${prev?'':' locked'}"><div class="card-head"><div><h3>${ch.name}</h3><span style="color:var(--ink-soft);font-size:13px">${ch.blurb}</span></div>${prev?`<button class="btn small primary" data-ch="${i}">Ride</button>`:`<span class="chip">Earn a star in ${CHALLENGES[i-1].name}</span>`}</div><ul class="goals">${ch.goals.map((g,j)=>`<li>${starSvg(st[j])}<span>${g.t}</span></li>`).join('')}</ul></div>`;
+    return`<div class="card${prev?'':' locked'}"><div class="card-head"><div><h3>${ch.name}</h3><span style="color:var(--ink-soft);font-size:13px">${ch.blurb}</span></div>${prev?`<div class="row" style="flex:0 1 auto"><button class="btn small primary" data-ch="${i}">Ride</button><button class="btn small" data-chf="${i}">Challenge friends</button></div>`:`<span class="chip">Earn a star in ${CHALLENGES[i-1].name}</span>`}</div><ul class="goals">${ch.goals.map((g,j)=>`<li>${starSvg(st[j])}<span>${g.t}</span></li>`).join('')}</ul></div>`;
   }).join('');
   $('chList').querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>{sfx('ui');startRun('challenge',CHALLENGES[+b.dataset.ch]);});
+  $('chList').querySelectorAll('[data-chf]').forEach(b=>b.onclick=()=>{sfx('ui');RC.pick=+b.dataset.chf;openRace();if(RC.ch){trackMe();renderLobby();}else raceMsg('You picked '+CHALLENGES[RC.pick].name+'. Create a race to get a code, or join a friend.');});
 }
 let previewSpin=0,lockerOpen=false,previewGear=null,shopTab='place',shopSel=null,previewMusic=null;
 const COIN_SVG=`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5c542" stroke="#d99a1e" stroke-width="2"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#fff3c4" stroke-width="2"/></svg>`;
@@ -952,7 +957,7 @@ function toggleSound(){save.muted=!save.muted;persist();updateMenuStats();if(A.m
 /* ---------- Race Friends (Supabase Realtime) ---------- */
 const SUPA_URL='https://hiifecbqxgigmyhayzxp.supabase.co',SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhpaWZlY2JxeGdpZ215aGF5enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NTkzMDIsImV4cCI6MjEwNzEzNTMwMn0.0uQeMTfDDSQL86nUata9Ei4b4CKF5IeyPbeV9P9lC9Q';
 const ONLINE_URL='https://vibe331212.github.io/powder-hollow/';
-const RC={client:null,ch:null,code:'',host:false,players:[],ghosts:{},results:[],sendT:0,inRace:false,lastRun:null,
+const RC={pick:-1,joinedAt:0,client:null,ch:null,code:'',host:false,players:[],ghosts:{},results:[],sendT:0,inRace:false,lastRun:null,
   id:(()=>{let v=store.get('rid',null);if(!v){v='r'+Math.random().toString(36).slice(2,10);store.set('rid',v);}return v;})()};
 if(!save.name)save.name='Rider '+(10+Math.random()*90|0);
 const raceReady=()=>typeof window.supabase!=='undefined'&&window.supabase.createClient&&!SUPA_URL.startsWith('__');
@@ -978,22 +983,28 @@ function joinRoom(code){
   ch.on('broadcast',{event:'finish'},({payload})=>addResult(payload));
   $('raceSetup').hidden=true;$('raceLobby').hidden=false;$('lobbyCode').textContent=code;$('lobbyStatus').textContent='Connecting to the race...';renderLobby();
   ch.subscribe(async status=>{
-    if(status==='SUBSCRIBED'){await ch.track({id:RC.id,name:save.name,joinedAt:Date.now()});$('lobbyStatus').textContent='Connected. Waiting for everyone to join.';}
+    if(status==='SUBSCRIBED'){RC.joinedAt=Date.now();await trackMe();$('lobbyStatus').textContent='Connected. Waiting for everyone to join.';}
     else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){$('lobbyStatus').textContent='Could not reach the race server. Check your internet and try again.';}
   });
   RC.ch=ch;
 }
+function trackMe(){if(!RC.ch)return Promise.resolve();return RC.ch.track({id:RC.id,name:save.name,joinedAt:RC.joinedAt||Date.now(),pick:RC.pick});}
+const pickName=k=>k>=0&&CHALLENGES[k]?CHALLENGES[k].name+' (first to finish all 3 goals wins)':'Race to the bottom';
 function leaveRoom(){if(RC.ch&&RC.client){try{RC.client.removeChannel(RC.ch);}catch(e){}}RC.ch=null;RC.inRace=false;RC.players=[];RC.ghosts={};}
 function renderLobby(){
   const ul=$('lobbyPlayers');if(!ul)return;ul.textContent='';
   RC.players.forEach((pl,i)=>{const li=document.createElement('li');const b=document.createElement('b');b.textContent=(i+1)+'. '+cleanName(pl.name);li.appendChild(b);const tag=[];if(i===0)tag.push('host');if(pl.id===RC.id)tag.push('you');if(tag.length){const sp=document.createElement('span');sp.className='prog';sp.textContent=tag.join(', ');li.appendChild(sp);}ul.appendChild(li);});
   if(!RC.players.length){const li=document.createElement('li');li.textContent='Joining...';ul.appendChild(li);}
   $('btnStartRace').hidden=!RC.host;
-  $('btnStartRace').textContent=RC.players.length>1?`Start race with ${RC.players.length} riders`:'Start race (solo)';
+  const hp=RC.host?RC.pick:(RC.players[0]&&RC.players[0].pick!=null?RC.players[0].pick:-1);
+  const sel=$('pickSel');sel.hidden=!RC.host;if(RC.host&&String(sel.value)!==String(RC.pick))sel.value=String(RC.pick);
+  $('pickText').textContent=RC.host?'You choose what everyone plays:':'Playing: '+pickName(hp);
+  const word=hp>=0?'challenge':'race';
+  $('btnStartRace').textContent=RC.players.length>1?`Start ${word} with ${RC.players.length} riders`:`Start ${word} (solo)`;
 }
 function startRaceAsHost(){
   if(!RC.ch||!RC.host)return;buildRoute();
-  const payload={seed:(Math.random()*2**31)|0,route:route.slice(0,8),weather:save.gear.weather==='random'?pick(['snow','sunny','blizzard']):save.gear.weather,delay:4000};
+  const payload={pick:RC.pick,seed:(Math.random()*2**31)|0,route:route.slice(0,8),weather:save.gear.weather==='random'?pick(['snow','sunny','blizzard']):save.gear.weather,delay:4000};
   RC.ch.send({type:'broadcast',event:'start',payload});beginRace(payload);
 }
 function beginRace(p){
@@ -1001,15 +1012,16 @@ function beginRace(p){
   game.raceSeed=p.seed|0;game.raceRoute=p.route.map(n=>n|0).filter(n=>n>=0&&n<BIOMES.length);if(!game.raceRoute.length)game.raceRoute=[0,1,2,3];
   game.raceWeather=['snow','sunny','blizzard'].includes(p.weather)?p.weather:'snow';
   RC.results=[];RC.ghosts={};RC.inRace=true;RC.sendT=0;
-  startRun('race');game.countT=Math.min(6,Math.max(1,(p.delay||4000)/1000));game.goT=0;
+  const chObj=(p.pick|0)>=0&&CHALLENGES[p.pick|0]&&p.pick!=null&&p.pick>=0?CHALLENGES[p.pick|0]:null;
+  startRun('race',chObj);game.countT=Math.min(6,Math.max(1,(p.delay||4000)/1000));game.goT=0;
 }
 function raceTick(dt){
   RC.sendT-=dt;if(RC.sendT>0||!RC.ch)return;RC.sendT=.1;
   RC.ch.send({type:'broadcast',event:'pos',payload:{id:RC.id,name:save.name,x:Math.round(P.x),y:Math.round(P.y),z:Math.round(P.z),a:+P.a.toFixed(2),spin:+P.spin.toFixed(2),flip:+P.flip.toFixed(2),fd:P.flipDir||1,st:P.state,gear:save.gear}});
 }
-function raceFinished(){const r={id:RC.id,name:save.name,time:run.raceT};addResult(r);if(RC.ch)RC.ch.send({type:'broadcast',event:'finish',payload:r});}
-function addResult(r){if(!r||RC.results.some(x=>x.id===r.id))return;RC.results.push({id:String(r.id),name:cleanName(r.name),time:+r.time||0});RC.results.sort((a,b)=>a.time-b.time);
-  if(game.state==='results'&&lastRun.mode==='race')showRaceResults();else if(r.id!==RC.id&&game.state==='play')toast(cleanName(r.name)+' finished in '+fmtTime(r.time));}
+function raceFinished(){let goals=null;if(run.ch){run.ch.goals.forEach((g,i)=>{if(!run.done[i]&&goalDone(g,run))run.done[i]=true;});goals=run.done.filter(Boolean).length;renderGoals();}const r={id:RC.id,name:save.name,time:run.raceT,goals};addResult(r);if(RC.ch)RC.ch.send({type:'broadcast',event:'finish',payload:r});}
+function addResult(r){if(!r||RC.results.some(x=>x.id===r.id))return;RC.results.push({id:String(r.id),name:cleanName(r.name),time:+r.time||0,goals:r.goals==null?null:Math.max(0,Math.min(3,r.goals|0))});RC.results.sort((a,b)=>((b.goals||0)-(a.goals||0))||(a.time-b.time));
+  if(game.state==='results'&&lastRun.mode==='race')showRaceResults();else if(r.id!==RC.id&&game.state==='play')toast(r.goals===3?cleanName(r.name)+' finished all 3 goals!':cleanName(r.name)+' finished in '+fmtTime(r.time));}
 function placeText(){
   const fin=RC.results.findIndex(x=>x.id===RC.id);const total=Math.max(RC.players.length,Object.keys(RC.ghosts).length+1);
   if(fin>=0)return ordinal(fin+1)+' of '+total;
@@ -1018,11 +1030,11 @@ function placeText(){
 }
 function showRaceResults(){
   const R=RC.lastRun||{};const me=RC.results.findIndex(x=>x.id===RC.id);
-  $('resEyebrow').textContent='Race '+RC.code;$('resTitle').textContent=me===0?'You won the race!':me>0?'You came '+ordinal(me+1):'Race over';
+  const isCh=!!R.ch;$('resEyebrow').textContent=(isCh?R.ch.name+' race ':'Race ')+RC.code;$('resTitle').textContent=me===0?(isCh?'You won the challenge!':'You won the race!'):me>0?'You came '+ordinal(me+1):'Race over';
   $('resStats').innerHTML='';
   [['Your time',fmtTime(R.raceT)],['Coins earned',Math.floor(R.coins||0).toLocaleString()],['Best trick',R.bestTrick||'Just racing'],['Snowbank visits',R.wipes||0]].forEach(([k,v])=>{const d=document.createElement('div');const sp=document.createElement('span');sp.textContent=k;const b=document.createElement('b');b.textContent=v;d.append(sp,b);$('resStats').appendChild(d);});
   const ul=$('resGoals');ul.hidden=false;ul.textContent='';
-  RC.results.forEach((r,i)=>{const li=document.createElement('li');const b=document.createElement('b');b.textContent=ordinal(i+1)+'  '+r.name+(r.id===RC.id?' (you)':'');const sp=document.createElement('span');sp.className='prog';sp.textContent=fmtTime(r.time);li.append(b,sp);ul.appendChild(li);});
+  RC.results.forEach((r,i)=>{const li=document.createElement('li');const b=document.createElement('b');b.textContent=ordinal(i+1)+'  '+r.name+(r.id===RC.id?' (you)':'');const sp=document.createElement('span');sp.className='prog';sp.textContent=(r.goals!=null?r.goals+'/3 goals   ':'')+fmtTime(r.time);li.append(b,sp);ul.appendChild(li);});
   for(const pl of RC.players)if(!RC.results.some(r=>r.id===pl.id)){const li=document.createElement('li');li.textContent=cleanName(pl.name)+' is still riding...';ul.appendChild(li);}
   $('resUnlocks').hidden=true;$('btnAgain').textContent='Back to race lobby';
 }
@@ -1034,12 +1046,13 @@ function drawGhost(g,bubbles){
   ctx.restore();ctx.globalAlpha=1;
   bubbles.push({x:g.rx,y:g.ry-z-78,text:g.name,a:1});
 }
-$('btnRace').onclick=()=>{audioStart();sfx('ui');openRace();};
+$('btnRace').onclick=()=>{audioStart();sfx('ui');if(!RC.ch)RC.pick=-1;openRace();};
 $('raceBack').onclick=()=>{sfx('ui');showScreen('menu');updateMenuStats();};
 $('btnCreateRace').onclick=()=>{sfx('ui');joinRoom(makeCode());};
 $('btnJoinRace').onclick=()=>{const c=$('raceCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==4){raceMsg('Race codes are 4 letters or numbers, like K7QP.');return;}sfx('ui');raceMsg('');joinRoom(c);};
 $('raceCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('btnJoinRace').click();});
 $('btnStartRace').onclick=()=>{sfx('ui');startRaceAsHost();};
+$('pickSel').addEventListener('change',()=>{RC.pick=+$('pickSel').value;trackMe();renderLobby();});
 $('btnLeaveRace').onclick=()=>{sfx('ui');leaveRoom();$('raceSetup').hidden=false;$('raceLobby').hidden=true;};
 $('raceName').addEventListener('change',()=>{save.name=cleanName($('raceName').value);$('raceName').value=save.name;persist();});
 
