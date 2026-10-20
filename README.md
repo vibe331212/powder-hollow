@@ -19,7 +19,7 @@ Tap **Sign in** on the main menu to create an account with email and password. C
 - Left / Right: carve, and spin in the air
 - Space: jump, and press again in the air to flip
 - Up / Down in the air: front flip or backflip (on phones, use the Flip and Back buttons)
-- X: hold in the air to grab
+- Command + B (Ctrl + B on Windows): hold in the air to grab
 - P: pause
 - V: switch between top view and the behind-the-rider view (also on the main menu and pause menu)
 

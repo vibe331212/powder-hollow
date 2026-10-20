@@ -245,7 +245,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
           <span><kbd>Left</kbd> <kbd>Right</kbd></span><span>Carve. In the air, spin.</span>
           <span><kbd>Space</kbd></span><span>Jump. Press again in the air to flip.</span>
           <span><kbd>Up</kbd> <kbd>Down</kbd></span><span>In the air: hold for a front flip or backflip.</span>
-          <span><kbd>X</kbd></span><span>Hold in the air to grab your board.</span>
+          <span><kbd>Cmd</kbd> <kbd>B</kbd></span><span>Hold both in the air to grab your board (Ctrl + B on Windows).</span>
           <span><kbd>Down</kbd> <kbd>Up</kbd></span><span>Tuck for speed, or slow down.</span>
           <span><kbd>P</kbd></span><span>Pause</span>
           <span><kbd>V</kbd></span><span>Switch between top view and behind view</span>
@@ -725,8 +725,12 @@ function resetWorld(){objs=[];genY=0;nextRow=0;parts.length=0;popups.length=0;P=
 
 /* ---------- Input ---------- */
 const keys={left:false,right:false,up:false,down:false,jump:false,trick:false,act:false};let jumpEdge=false;
-const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'jump',KeyZ:'jump',KeyJ:'jump',KeyX:'trick',KeyK:'trick',ShiftLeft:'trick',ShiftRight:'trick',KeyE:'act',Enter:'act'};
+const KEYMAP={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'jump',KeyZ:'jump',KeyJ:'jump',KeyK:'trick',ShiftLeft:'trick',ShiftRight:'trick',KeyE:'act',Enter:'act'};
+const grabKey={b:false,mod:false};
+function syncGrab(){keys.trick=grabKey.b&&grabKey.mod;}
 addEventListener('keydown',e=>{
+  if(e.key==='Meta'||e.key==='Control'){grabKey.mod=true;syncGrab();}
+  if(e.code==='KeyB'&&(e.metaKey||e.ctrlKey)){if(game.state==='play')e.preventDefault();grabKey.b=true;grabKey.mod=true;syncGrab();return;}
   const k=KEYMAP[e.code];
   if(k&&game.state==='play'){e.preventDefault();if(k==='jump'&&!keys.jump)jumpEdge=true;keys[k]=true;}
   if(k&&game.state==='village'&&!e.target.closest('input')){e.preventDefault();if((k==='act'||k==='jump')&&!e.repeat)villageAct();keys[k]=true;}
@@ -734,7 +738,7 @@ addEventListener('keydown',e=>{
   if(e.code==='KeyM')toggleSound();
   if(e.code==='KeyV')toggleView();
 });
-addEventListener('keyup',e=>{const k=KEYMAP[e.code];if(k)keys[k]=false;});
+addEventListener('keyup',e=>{if(e.key==='Meta'||e.key==='Control'){grabKey.mod=false;grabKey.b=false;syncGrab();return;}if(e.code==='KeyB'){grabKey.b=false;syncGrab();return;}const k=KEYMAP[e.code];if(k)keys[k]=false;});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false;if(game.state==='play'&&game.mode!=='race')pauseGame();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&game.state==='play'&&game.mode!=='race')pauseGame();});
 const isTouch=('ontouchstart' in window)||matchMedia('(pointer:coarse)').matches;
