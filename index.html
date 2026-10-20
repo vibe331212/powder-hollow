@@ -1318,6 +1318,7 @@ const SCN={
   out:{w:3600,h:3100,name:'Snowy Town',solids:[],doors:[]},
   shop:{w:1100,h:800,name:'General Store',solids:[[0,0,1100,120],[0,0,30,800],[1070,0,30,800],[0,770,500,30],[620,770,480,30],[110,620,300,70]],doors:[{x:500,y:740,w:120,h:60,to:'out',spawn:'shop'}]},
   lodge:{w:1100,h:800,name:'The Lodge',solids:[[0,0,1100,150],[0,0,30,800],[1070,0,30,800],[0,770,500,30],[620,770,480,30],[740,630,290,64],[440,40,220,150]],doors:[{x:500,y:740,w:120,h:60,to:'out',spawn:'lodge'}]},
+  room:{w:820,h:620,name:'Inside',solids:[[0,0,820,130],[0,0,30,620],[790,0,30,620],[0,590,350,30],[470,590,350,30]],doors:[{x:350,y:560,w:120,h:60,to:'out'}]},
   house:{w:820,h:620,name:'Your House',solids:[[0,0,820,130],[0,0,30,620],[790,0,30,620],[0,590,350,30],[470,590,350,30],[60,130,180,170],[600,130,170,110]],doors:[{x:350,y:560,w:120,h:60,to:'out',spawn:'house'}]}
 };
 // shelves and racks are built from the gear lists
@@ -1350,7 +1351,7 @@ function enterVillage(scene,spawn){
 function leaveVillage(){townLeave();VIL.drive=null;$('vhud').hidden=true;$('vPrompt').hidden=true;save.village=false;persist();VIL.basket=[];game.state='menu';showScreen('menu');updateMenuStats();if(P.state!=='ride')resetWorld();}
 function vToast(t){const e=$('vToast');e.textContent=t;e.classList.add('show');VIL.toastT=2.4;}
 function renderVillageHud(){
-  $('vPlace').textContent=(VIL.scene==='house'?houseById(VIL.houseId).name:SCN[VIL.scene].name)+(VIL.scene==='out'?(VIL.night?' at night':''):'')+(TC.code?'  ·  '+TC.code+' ('+Math.max(1,TC.players.length)+')':'');$('vCoins').textContent=coinStr()+' coins';
+  $('vPlace').textContent=(VIL.scene==='house'?houseById(VIL.houseId).name:VIL.scene==='room'?(VIL.roomB.kind==='cafe'?'Cocoa Cafe':VIL.roomB.kind==='hall'?'Town Hall':VIL.roomB.kind==='dealer'?'Car Dealer':VIL.roomB.pname+"'s house"):SCN[VIL.scene].name)+(VIL.scene==='out'?(VIL.night?' at night':''):'')+(TC.code?'  ·  '+TC.code+' ('+Math.max(1,TC.players.length)+')':'');$('vCoins').textContent=coinStr()+' coins';
   const b=$('vBasket');b.hidden=!VIL.basket.length;b.textContent='';
   if(VIL.basket.length){const h=document.createElement('b');h.textContent='Your tickets';b.appendChild(h);let tot=0;for(const it of VIL.basket){const g=gearById(it.sl,it.id);tot+=g.price;const d=document.createElement('div');d.textContent=g.name+'  '+g.price.toLocaleString();b.appendChild(d);}
     const t=document.createElement('div');t.style.fontWeight='800';t.textContent='Total: '+tot.toLocaleString()+' coins';b.appendChild(t);}
@@ -1360,6 +1361,8 @@ function nearest(){
   const consider=(d,act)=>{if(d<bd){bd=d;best=act;}};
   if(sc==='shop'||sc==='lodge'){for(const S of SHELVES[sc])S.items.forEach((it,i)=>{const q=spotPos(S,i);const dx=px-q.x,dy=py-(q.y+30);if(Math.abs(dx)<S.w/S.items.length*.6+8&&dy>-20&&dy<70)consider(Math.abs(dx)+Math.abs(dy)*.3,{k:'item',it});});
     const c=sc==='shop'?{x:260,y:720}:{x:885,y:725};const d=Math.hypot(px-c.x,py-c.y);if(d<110)consider(d,{k:'checkout'});}
+  if(sc==='room'){const R=VIL.roomB;if(R){const d=Math.hypot(px-410,py-250);if(d<130)consider(d,{k:R.kind==='cafe'?'cocoa':R.kind==='hall'?'mayor':R.kind==='dealer'?'sales':'chat'});}}
+  if(sc==='house'&&VIL.tour){const d=Math.hypot(px-410,py-330);if(d<160)consider(d,{k:'buyhere'});return best;}
   if(sc==='house'){const hb=Math.hypot(px-410,py-180);if(hb<90&&VIL.houseId!==save.home)consider(hb,{k:'sethome'});const bed=Math.hypot(px-150,py-330);if(bed<110)consider(bed,{k:'bed'});const w=Math.hypot(px-685,py-270);if(w<110)consider(w,{k:'wardrobe'});}
   if(sc==='out'){
     if(VIL.drive)return{k:'exitcar'};
@@ -1384,6 +1387,11 @@ function promptText(a){
   if(a.k==='exitcar')return'Get out of the car';
   if(a.k==='dealer')return save.cars.length?'Cars you own: '+save.cars.length+'. Walk to a car on the lot':'Walk up to a car on the lot to buy it';
   if(a.k==='sethome')return'Make this your home';
+  if(a.k==='buyhere'){const H=houseById(VIL.houseId);return'Buy this house: '+H.name+'  '+H.price.toLocaleString()+' coins';}
+  if(a.k==='cocoa')return'Buy a hot cocoa  100 coins';
+  if(a.k==='mayor')return'Talk to the mayor';
+  if(a.k==='sales')return'Talk to the car seller';
+  if(a.k==='chat')return'Say hi to '+VIL.roomB.pname;
   return'';
 }
 function villageAct(){
@@ -1411,6 +1419,11 @@ function villageAct(){
   if(a.k==='exitcar'){const d=VIL.drive;VIL.parked={id:d.id,x:d.x,y:d.y,ang:d.ang};VIL.drive=null;VIL.x=d.x+Math.cos(d.ang)*50;VIL.y=d.y+Math.sin(d.ang)*50;if(vSolid(VIL.x,VIL.y)){VIL.x=d.x-Math.cos(d.ang)*50;VIL.y=d.y-Math.sin(d.ang)*50;}return;}
   if(a.k==='dealer')return;
   if(a.k==='sethome'){save.home=VIL.houseId;persist();vToast('This is your home now');return;}
+  if(a.k==='buyhere'){const H=houseById(VIL.houseId);if(save.coins<H.price){vToast('You need '+Math.ceil(H.price-save.coins).toLocaleString()+' more coins');sfx('poof');return;}save.coins-=H.price;save.houses.push(H.id);save.home=H.id;VIL.tour=false;persist();sfx('goal');vToast('You bought the '+H.name+'! Welcome home.');renderVillageHud();return;}
+  if(a.k==='cocoa'){if(save.coins<100){VIL.bubble={text:'Cocoa is 100 coins',t:2.4};return;}save.coins-=100;persist();sfx('goal');VIL.bubble={text:pick(['Here you go! Extra marshmallows!','One hot cocoa, coming up!','Careful, it is hot!']),t:2.6};renderVillageHud();return;}
+  if(a.k==='mayor'){VIL.bubble={text:'Welcome! You own '+save.houses.length+' house'+(save.houses.length>1?'s':'')+' and '+save.cars.length+' car'+(save.cars.length===1?'':'s')+'.',t:3.2};return;}
+  if(a.k==='sales'){VIL.bubble={text:'Pick any car on the lot outside. Walk up to it to buy!',t:3};return;}
+  if(a.k==='chat'){VIL.bubble={text:pick(['Hi neighbor! Want a cookie?','Nice to see you!','Have you tried the cocoa cafe?','Did you ride the lift today?','Stay warm out there!']),t:2.8};return;}
 }
 function vSolid(x,y){const sc=SCN[VIL.scene];for(const r of sc.solids)if(x>r[0]-12&&x<r[0]+r[2]+12&&y>r[1]-6&&y<r[1]+r[3]+10)return true;return false;}
 function updateVillage(dt){
@@ -1441,16 +1454,16 @@ function updateVillage(dt){
   const sc=SCN[VIL.scene];VIL.x=clamp(VIL.x,20,sc.w-20);VIL.y=clamp(VIL.y,20,sc.h-20);
   VIL.doorCD=Math.max(0,VIL.doorCD-dt);
   if(VIL.doorCD<=0)for(const d of sc.doors){if(VIL.x>d.x&&VIL.x<d.x+d.w&&VIL.y>d.y&&VIL.y<d.y+d.h){sfx('ui');
-    if(d.to==='house'&&!save.houses.includes(d.house)){vToast('This house is for sale. Walk to the sign to buy it.');VIL.doorCD=1.5;VIL.y+=24;break;}
-    if(d.to==='out'){VIL.scene='out';const sp=d.spawn==='house'?VIL_SPAWN['house_'+VIL.houseId]:VIL_SPAWN[d.spawn];VIL.x=sp.x;VIL.y=sp.y;VIL.dir='down';}
-    else{if(d.to==='house')VIL.houseId=d.house;VIL.scene=d.to;const S=SCN[d.to];VIL.x=S.w/2;VIL.y=S.h-90;VIL.dir='up';}
+    if(d.to==='out'){VIL.scene='out';const sp=VIL_SPAWN['b_'+VIL.fromB]||VIL_SPAWN.start;VIL.x=sp.x;VIL.y=sp.y;VIL.dir='down';VIL.tour=false;}
+    else{VIL.fromB=d.b;if(d.to==='house'){VIL.houseId=d.house;VIL.tour=!save.houses.includes(d.house);if(VIL.tour)vToast('Touring the '+houseById(d.house).name+'. It is for sale.');}if(d.to==='room')VIL.roomB=TOWN.b[d.b];VIL.scene=d.to;const S=SCN[d.to];VIL.x=S.w/2;VIL.y=S.h-90;VIL.dir='up';}
     VIL.target=null;VIL.doorCD=.8;renderVillageHud();break;}}
   const a=nearest(),pt=$('vPrompt');const txt=promptText(a);pt.hidden=!txt;if(txt&&pt.textContent!==txt)pt.textContent=txt;
   if(Math.random()<dt*2)renderVillageHud();
 }
 let VS=1,VCX=0,VCY=0;
 function v2s(x,y){return[(x-VCX)*VS+W/2,(y-VCY)*VS+H/2];}
-cv.addEventListener('pointerdown',e=>{if(game.state!=='village')return;const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;VIL.target={x:(sx-W/2)/VS+VCX,y:(sy-H/2)/VS+VCY};});
+cv.addEventListener('pointerdown',e=>{if(game.state!=='village')return;const r=cv.getBoundingClientRect();const sx=e.clientX-r.left,sy=e.clientY-r.top;const wx=(sx-W/2)/VS+VCX,wy=(sy-H/2)/VS+VCY;VIL.target={x:wx,y:wy};
+  if(VIL.scene==='out'&&!VIL.drive)for(const b of TOWN.b){if(b.door&&wx>b.x&&wx<b.x+b.w&&wy>b.y-90&&wy<b.y+b.h+10){VIL.target={x:b.door.x,y:b.door.y};break;}}});
 function woodFloor(x,y,w,h,c1,c2){ctx.fillStyle=c1;ctx.fillRect(x,y,w,h);ctx.strokeStyle=c2;ctx.lineWidth=2;for(let yy=y;yy<y+h;yy+=28){ctx.beginPath();ctx.moveTo(x,yy);ctx.lineTo(x+w,yy);ctx.stroke();for(let xx=x+((yy/28|0)%2)*60;xx<x+w;xx+=120){ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx,yy+28);ctx.stroke();}}
   const g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'rgba(0,0,0,.08)');g.addColorStop(1,'rgba(255,255,255,.06)');ctx.fillStyle=g;ctx.fillRect(x,y,w,h);}
 function drawItemIcon(sl,g,x,y){
@@ -1482,7 +1495,7 @@ function drawShelfUnit(S){
 }
 function drawWalker(x,y,dir,ph,moving){
   const g=save.gear,jk=gearById('jacket',g.jacket),sc=gearById('scarf',g.scarf),ht=gearById('hat',g.hat),rd=gearById('rider',g.rider),gg=gearById('goggles',g.goggles);
-  ctx.save();ctx.translate(x,y);ctx.scale(1.55,1.55);ell(0,1,13,4.5,'rgba(40,60,90,.2)');
+  ctx.save();ctx.translate(x,y);ctx.scale(1.55*(drawWalker.s||1),1.55*(drawWalker.s||1));ell(0,1,13,4.5,'rgba(40,60,90,.2)');
   const sw=moving?Math.sin(ph):0,side=dir==='left'?-1:dir==='right'?1:0;
   ctx.strokeStyle=jk.pants;ctx.lineWidth=6;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(-4,-18);ctx.lineTo(-4+side*sw*4,-3-Math.max(0,sw)*3);ctx.moveTo(4,-18);ctx.lineTo(4-side*sw*4,-3-Math.max(0,-sw)*3);ctx.stroke();
@@ -1561,13 +1574,14 @@ function buildTown(){
   add({kind:'house',house:'castle',x:1530,y:2500,w:540,h:380});
   for(const [x,c] of [[500,0],[1000,1],[2300,2],[2800,3],[3330,4]])add({kind:'npc',x:x,y:70,w:260,h:260,seed:c});
   add({kind:'npc',x:500,y:2500,w:300,h:260,seed:7});add({kind:'npc',x:2500,y:2520,w:320,h:250,seed:8});add({kind:'npc',x:2900,y:2520,w:280,h:250,seed:9});
-  B.forEach((b,i)=>{b.i=i;if(b.kind==='npc'){const k=b.seed!=null?b.seed:i;b.wall=NPC_WALLS[k%NPC_WALLS.length];b.roof=NPC_ROOFS[(k*3+1)%NPC_ROOFS.length];b.chim=k%2===0;}});
+  B.forEach((b,i)=>{b.i=i;b.person={rider:GEAR.rider.filter(r=>!r.kind)[i%12].id,jacket:GEAR.jacket[(i*5)%GEAR.jacket.length].id,hat:GEAR.hat[(i*3)%GEAR.hat.length].id,scarf:GEAR.scarf[(i*7)%GEAR.scarf.length].id,goggles:'none',board:'powder'};b.pname=['Grandma Rose','Mr. Patel','Ms. Kim','Uncle Joe','Mrs. Lopez','Dr. Ade','Coach Sam','Aunt May','Mr. Olsen','Ms. Rivera','Mr. Chen','Nana Bea'][i%12];if(b.kind==='npc'){const k=b.seed!=null?b.seed:i;b.wall=NPC_WALLS[k%NPC_WALLS.length];b.roof=NPC_ROOFS[(k*3+1)%NPC_ROOFS.length];b.chim=k%2===0;}});
   const sc=SCN.out;sc.solids=[[0,0,3600,30],[0,0,30,3100],[3570,0,30,3100],[0,3070,3600,30],[RB.x-100,RB.y-100,200,200]];sc.doors=[];
   for(const b of B){if(b.kind==='lift'){sc.solids.push([b.x,b.y,b.w,b.h-30]);continue;}sc.solids.push([b.x,b.y,b.w,b.h]);
     const dx=b.x+b.w/2;const sp={x:dx,y:b.y+b.h+44,dir:'down'};
-    if(b.kind==='shop'){sc.doors.push({x:dx-30,y:b.y+b.h-2,w:60,h:40,to:'shop'});VIL_SPAWN.shop=sp;}
-    if(b.kind==='lodge'){sc.doors.push({x:dx-30,y:b.y+b.h-2,w:60,h:40,to:'lodge'});VIL_SPAWN.lodge=sp;}
-    if(b.kind==='house'){sc.doors.push({x:dx-30,y:b.y+b.h-2,w:60,h:40,to:'house',house:b.house});VIL_SPAWN['house_'+b.house]=sp;b.spawn=sp;}
+    VIL_SPAWN['b_'+b.i]=sp;b.door={x:dx,y:b.y+b.h+18};
+    const to=b.kind==='shop'?'shop':b.kind==='lodge'?'lodge':b.kind==='house'?'house':'room';
+    sc.doors.push({x:dx-30,y:b.y+b.h-2,w:60,h:40,to,house:b.house,b:b.i});
+    if(b.kind==='shop')VIL_SPAWN.shop=sp;if(b.kind==='lodge')VIL_SPAWN.lodge=sp;if(b.kind==='house'){VIL_SPAWN['house_'+b.house]=sp;b.spawn=sp;}
     if(b.kind==='lift')VIL_SPAWN.lift={x:dx,y:b.y+b.h+30,dir:'down'};}
   sc.solids.push([450,1900,640,330]);
   const homeB=B.find(b=>b.house===save.home)||B[0];VIL_SPAWN.start={x:homeB.x+homeB.w/2,y:homeB.y+homeB.h+60,dir:'down'};
@@ -1583,10 +1597,10 @@ function buildTown(){
   TOWN.lot=CARS.map((c,i)=>({car:c.id,x:2420+(i%5)*160,y:i<5?1600:1730,ang:0}));
   // townspeople and robots on sidewalks
   const lines=[[420,1298,1690,1298],[1910,1298,3180,1298],[420,1502,1690,1502],[1910,1502,3180,1502],[1698,500,1698,1280],[1902,500,1902,1280],[1698,1520,1698,2300],[1902,1520,1902,2300],[420,500,3180,500],[420,2300,3180,2300]];
-  const PEOPLE=['Robo Bob','Sparky','Bolt','Gizmo','Mia','Leo','Ava','Noah','Zara','Kofi','Juno','Rio','Beep','Ivy','Luca','Nova','Chip','Mei'];
-  TOWN.npcs=PEOPLE.map((name,i)=>{const L=lines[i%lines.length];const robot=i%3===0||name.startsWith('Robo')||['Sparky','Bolt','Gizmo','Beep','Chip','Nova'].includes(name);const t=rng();
+  const PEOPLE=['Emma','Liam','Sofia','Mateo','Mia','Leo','Ava','Noah','Zara','Kofi','Juno','Rio','Olivia','Ivy','Luca','Nora','Ethan','Mei'];
+  TOWN.npcs=PEOPLE.map((name,i)=>{const L=lines[i%lines.length];const robot=false;const t=rng();
     const gear={rider:pick(GEAR.rider.filter(r=>!r.kind)).id,jacket:pick(GEAR.jacket).id,hat:pick(GEAR.hat).id,scarf:pick(GEAR.scarf).id,goggles:'none',board:'powder'};
-    return{name,robot,L,t,dir:rng()<.5?1:-1,x:lerp(L[0],L[2],t),y:lerp(L[1],L[3],t),wait:0,ph:0,col:pick(['#9aa6b8','#8cc8ff','#ffd76a','#ff9ec4','#b9a8ff','#4fd8b6']),gear,bub:'',bubT:0};});
+    return{name,robot,size:i%4===0?1.15:i%4===2?.9:1,L,t,dir:rng()<.5?1:-1,x:lerp(L[0],L[2],t),y:lerp(L[1],L[3],t),wait:0,ph:0,col:pick(['#9aa6b8','#8cc8ff','#ffd76a','#ff9ec4','#b9a8ff','#4fd8b6']),gear,bub:'',bubT:0};});
   // traffic routes
   const arc=(cx,cy,r,a0,a1,n)=>{const pts=[];for(let i=0;i<=n;i++){const a=a0+(a1-a0)*i/n;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}return pts;};
   const D=Math.PI/180;
@@ -1644,8 +1658,7 @@ function drawRobot(x,y,dir,ph,moving,col){
   ctx.strokeStyle='#5d6878';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,-58);ctx.lineTo(0,-66);ctx.stroke();ell(0,-67,2.6,2.6,Math.sin(game.t*5+x)>0?'#ff6a6a':'#ffd76a');
   ctx.restore();
 }
-function drawNPCWalker(n){if(n.robot){drawRobot(n.x,n.y,n.vdir,n.ph,n.moving,n.col);return;}
-  const saveGear=save.gear;save.gear=Object.assign({},saveGear,n.gear);try{drawWalker(n.x,n.y,n.vdir,n.ph,n.moving);}finally{save.gear=saveGear;}}
+function drawNPCWalker(n){const saveGear=save.gear;save.gear=Object.assign({},saveGear,n.gear);drawWalker.s=n.size||1;try{drawWalker(n.x,n.y,n.vdir,n.ph,n.moving);}finally{save.gear=saveGear;drawWalker.s=1;}}
 function updateTown(dt){
   for(const n of TOWN.npcs){if(n.wait>0){n.wait-=dt;n.moving=false;continue;}
     const L=n.L,len=Math.hypot(L[2]-L[0],L[3]-L[1]);n.t+=n.dir*55*dt/len;if(n.t>1||n.t<0){n.t=clamp(n.t,0,1);n.dir*=-1;n.wait=1+Math.random()*3;}
@@ -1802,9 +1815,42 @@ function drawLodge(){
   items.push({y:VIL.y,fn:()=>drawWalker(VIL.x,VIL.y,VIL.dir,VIL.ph,VIL.moving)});
   items.sort((a,b)=>a.y-b.y);for(const it of items)it.fn();
 }
+function drawPerson(x,y,gear,dir,scale){const sg=save.gear;save.gear=Object.assign({},sg,gear);drawWalker.s=scale||1;try{drawWalker(x,y,dir||'down',0,false);}finally{save.gear=sg;drawWalker.s=1;}}
+function drawRoom(){
+  const R=VIL.roomB||{kind:'npc'},sc=SCN.room,k=R.kind;
+  const pal=k==='cafe'?['#b98a5e','#a07752','#e9c9a6','#c9a27f']:k==='hall'?['#e3eaf3','#cdd6e2','#f6efe2','#d6c4a5']:k==='dealer'?['#dfe6ef','#c9d3df','#ffffff','#d6dde8']:['#e3c9a6','#cdb08b',R.wall||'#bcd6f2',shade(R.wall||'#bcd6f2',-.15)];
+  drawRoomBase(sc,pal[0],pal[1],pal[2],pal[3]);
+  const title=k==='cafe'?'Cocoa Cafe':k==='hall'?'Town Hall':k==='dealer'?'Car Dealer Showroom':R.pname+"'s house";
+  ctx.fillStyle='#16407a';ctx.font='800 16px Sniglet, system-ui, sans-serif';ctx.textAlign='center';ctx.fillText(title,k==='npc'?410:150,k==='npc'?150:124);
+  const items=[];
+  if(k==='cafe'){
+    ctx.fillStyle='#2c3e50';rrect(300,24,220,90,8);ctx.fill();ctx.fillStyle='#ffffff';ctx.font='800 13px Nunito, sans-serif';ctx.fillText('MENU',410,44);ctx.font='700 11px Nunito, sans-serif';['Hot cocoa ........ 100','Marshmallow cloud ... free','Snow cookie ......... smile'].forEach((t,i)=>ctx.fillText(t,410,64+i*16));
+    items.push({y:260,fn:()=>{drawPerson(410,200,R.person,'down',1.1);ctx.fillStyle='#7b5b45';ctx.fillRect(250,210,320,50);ctx.fillStyle='#e9dccd';ctx.fillRect(250,210,320,14);ctx.fillStyle='#8a97ab';rrect(500,180,40,32,6);ctx.fill();ell(520,178,10,4,'#c9d3df');for(const mx of[300,340,460])ell(mx,214,8,6,'#ffffff'),ell(mx,212,6,3,'#7a5038');}});
+    for(const [tx,ty] of [[170,420],[650,420],[170,520],[650,520]])items.push({y:ty+20,fn:()=>{ell(tx,ty+18,40,10,'rgba(40,30,20,.18)');ctx.fillStyle='#8a6a52';ell(tx,ty,38,22);ell(tx,ty-2,34,18,'#a07752');ell(tx-10,ty-4,6,5,'#ffffff');ell(tx-10,ty-6,4,2.5,'#7a5038');ctx.fillStyle='#c0453f';ell(tx-50,ty+6,12,9);ell(tx+50,ty+6,12,9);}});
+  }else if(k==='hall'){
+    for(const fx of[120,700]){ctx.strokeStyle='#8a97ab';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(fx,130);ctx.lineTo(fx,40);ctx.stroke();poly([fx,42,fx+40,52,fx,62],'#2f7fd6');}
+    ctx.fillStyle='#ffffff';rrect(250,30,320,86,8);ctx.fill();ctx.strokeStyle='#16407a';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#16407a';ctx.font='800 12px Nunito, sans-serif';ctx.fillText('SNOWY TOWN NOTICE BOARD',410,50);ctx.font='700 11px Nunito, sans-serif';['Houses for sale: look for the signs','Cars: visit the Car Dealer lot','Ski lift: rides all day'].forEach((t,i)=>ctx.fillText(t,410,70+i*15));
+    ell(410,420,240,70,'#c0453f');ell(410,420,220,58,'#d9644f');
+    items.push({y:270,fn:()=>{drawPerson(410,215,R.person,'down',1.15);ctx.fillStyle='#5d4037';ctx.fillRect(290,225,240,48);ctx.fillStyle='#7b5b45';ctx.fillRect(290,225,240,12);ctx.fillStyle='#ffffff';ctx.fillRect(330,218,40,10);ctx.fillStyle='#16407a';ctx.font='800 10px Nunito, sans-serif';ctx.fillText('MAYOR',410,262);}});
+  }else if(k==='dealer'){
+    const gl=ctx.createLinearGradient(0,0,0,130);gl.addColorStop(0,'#9fc3e6');gl.addColorStop(1,'#cfe8fb');ctx.fillStyle=gl;ctx.fillRect(30,10,760,110);
+    ell(410,400,150,60,'rgba(40,60,90,.12)');ell(410,400,140,52,'#ffffff');ctx.strokeStyle='#d6dde8';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(410,400,140,52,0,0,TAU);ctx.stroke();
+    items.push({y:400,fn:()=>drawCar(410,400,(VIL.t||0)*.5,'super','#ff8a1e',{parked:true,noSnow:true})});
+    items.push({y:260,fn:()=>{drawPerson(410,210,R.person,'down',1.1);ctx.fillStyle='#ffffff';ctx.fillRect(320,220,180,40);ctx.strokeStyle='#d6dde8';ctx.strokeRect(320,220,180,40);ctx.fillStyle='#2c3e50';ctx.fillRect(440,206,40,18);}});
+  }else{
+    ctx.fillStyle=VIL.night?'#0d2547':'#8cc8ff';ctx.fillRect(330,24,160,86);ctx.strokeStyle='#ffffff';ctx.lineWidth=5;ctx.strokeRect(330,24,160,86);
+    ell(410,420,170,60,'#9fd8ff');ell(410,420,140,46,'#cfe8fb');
+    items.push({y:230,fn:()=>{ctx.fillStyle='#3f6fb0';rrect(80,170,190,60,14);ctx.fill();ctx.fillStyle='#5a8fd0';rrect(80,160,190,26,12);ctx.fill();}});
+    items.push({y:250,fn:()=>{ctx.fillStyle='#7b5b45';ctx.fillRect(560,190,160,60);ell(600,186,12,8,'#ffffff');ell(650,186,10,7,'#f2b630');}});
+    items.push({y:300,fn:()=>drawPerson(410,300,R.person,'down',1.12)});
+  }
+  items.push({y:VIL.y,fn:()=>drawWalker(VIL.x,VIL.y,VIL.dir,VIL.ph,VIL.moving)});
+  items.sort((a,b)=>a.y-b.y);for(const it of items)it.fn();
+  if(VIL.bubble)drawBubble({x:410,y:k==='npc'?210:120,text:VIL.bubble.text,a:1});
+}
 function drawHouse(){
   const sc=SCN.house,HS=houseById(VIL.houseId||save.home);drawRoomBase(sc,HS.floor[0],HS.floor[1],HS.walls[0],HS.walls[1]);
-  ctx.fillStyle='#16407a';ctx.font='800 15px Sniglet, system-ui, sans-serif';ctx.textAlign='center';ctx.fillText(HS.name+(save.home===HS.id?'  (home)':''),410,140);
+  ctx.fillStyle='#16407a';ctx.font='800 15px Sniglet, system-ui, sans-serif';ctx.textAlign='center';ctx.fillText(HS.name+(VIL.tour?'  (for sale: '+HS.price.toLocaleString()+' coins)':save.home===HS.id?'  (home)':''),410,140);
   const sky=ctx.createLinearGradient(0,20,0,110);sky.addColorStop(0,VIL.night?'#0d2547':'#8cc8ff');sky.addColorStop(1,VIL.night?'#2c3e66':'#e9f4ff');ctx.fillStyle=sky;ctx.fillRect(330,24,160,86);
   if(VIL.night){for(let i=0;i<8;i++)star4(340+hash(i,1)*140,30+hash(i,2)*60,2,.9,'#ffffff');ell(460,46,9,9,'#fff3c4');}else ell(460,46,11,11,'#fff3c4');
   ctx.strokeStyle='#ffffff';ctx.lineWidth=5;ctx.strokeRect(330,24,160,86);ctx.beginPath();ctx.moveTo(410,24);ctx.lineTo(410,110);ctx.stroke();
@@ -1825,7 +1871,7 @@ function drawVillage(){
   const sc=SCN[VIL.scene];VS=clamp(Math.min(W/760,H/620),.55,1.5)*(VIL.scene==='out'&&VIL.drive?.72:1);
   VCX=sc.w*VS<W?sc.w/2:clamp(VIL.x,W/2/VS,sc.w-W/2/VS);VCY=sc.h*VS<H?sc.h/2:clamp(VIL.y-30,H/2/VS,sc.h-H/2/VS);
   ctx.save();ctx.translate(W/2,H/2);ctx.scale(VS,VS);ctx.translate(-VCX,-VCY);
-  if(VIL.scene==='out')drawVillageOut();else if(VIL.scene==='shop')drawShop();else if(VIL.scene==='lodge')drawLodge();else drawHouse();
+  if(VIL.scene==='out')drawVillageOut();else if(VIL.scene==='shop')drawShop();else if(VIL.scene==='lodge')drawLodge();else if(VIL.scene==='room')drawRoom();else drawHouse();
   if(VIL.scene!=='out')for(const id in TC.others){const o=TC.others[id];if(o.scene===VIL.scene&&(VIL.scene!=='house'||o.house===VIL.houseId))drawFriend(o);}
   const a=nearest();if(a&&a.k==='item'){const S=SHELVES[VIL.scene].find(S=>S.items.includes(a.it));if(S){const q=spotPos(S,S.items.indexOf(a.it));ctx.strokeStyle='#f2b630';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,(S.wall?q.y-30:S.y+2),18,26,0,0,TAU);ctx.stroke();}}
   if(VIL.target){ctx.strokeStyle='rgba(47,127,214,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(VIL.target.x,VIL.target.y,12,5,0,0,TAU);ctx.stroke();}
