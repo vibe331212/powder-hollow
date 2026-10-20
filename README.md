@@ -18,5 +18,6 @@ Tap **Sign in** on the main menu to create an account with email and password. C
 - Up / Down in the air: front flip or backflip (on phones, use the Flip and Back buttons)
 - X: hold in the air to grab
 - P: pause
+- V: switch between top view and the behind-the-rider view (also on the main menu and pause menu)
 
 Race mode uses Supabase Realtime channels. The key in `index.html` is Supabase's public (anon) key, which is meant to be used in web pages.
