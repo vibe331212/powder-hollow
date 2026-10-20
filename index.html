@@ -1788,7 +1788,10 @@ let BF=600,BHY=200;
 function bp(x,y,z){const d=y-BC.y;if(d<12)return null;const k=BF/d;return{x:W/2+(x-BC.x)*k,y:BHY+(BC.z-z)*k,k,d};}
 function bpoly(pts,fill,stroke,lw){let first=true;ctx.beginPath();for(const q of pts){if(!q)return false;if(first){ctx.moveTo(q.x,q.y);first=false;}else ctx.lineTo(q.x,q.y);}ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}return true;}
 function bline(a,b,col,w){if(!a||!b)return;ctx.strokeStyle=col;ctx.lineWidth=Math.max(.6,w);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
-function sprite(o,fn,near){const q=bp(o.x,o.y,0);if(!q)return;if(q.x<-q.k*500||q.x>W+q.k*500)return;const fade=clamp((2700-q.d)/600,0,1)*(near?clamp((q.d-120)/260,0,1):1);if(fade<=0)return;
+const SEE=720;
+const trackThing=o=>!o.side&&(o.ob||['tree','rock','snowman','pillar','ramp','rail','boost','ice','flake'].includes(o.t));
+const seeFade=d=>clamp((SEE-d)/240,0,1);
+function sprite(o,fn,near,mul){const q=bp(o.x,o.y,0);if(!q)return;if(q.x<-q.k*500||q.x>W+q.k*500)return;const fade=clamp((2700-q.d)/600,0,1)*(near?clamp((q.d-120)/260,0,1):1)*(mul==null?1:mul);if(fade<=0)return;if(fade<=0)return;
   ctx.save();ctx.globalAlpha=fade;ctx.translate(q.x,q.y);ctx.scale(q.k,q.k);ctx.translate(-o.x,-o.y);fn();ctx.restore();}
 function drawRamp3D(o){
   const w=o.w,y0=o.y,y1=o.y+o.h,rh=o.rh*2.6,xl=o.x-w/2,xr=o.x+w/2;
@@ -1900,10 +1903,12 @@ function drawBack(env,k){
   list.push({t:'player',x:P.x,y:P.y+.01});
   list.sort((a,b)=>b.y-a.y);
   for(const o of list){
+    const tv=trackThing(o)?seeFade(o.y-BC.y):1;if(tv<=0)continue;
+    if(tv<1&&(o.t==='ramp'||o.t==='rail'||o.t==='boost'||o.t==='ice')){ctx.save();ctx.globalAlpha=tv;if(o.t==='ramp')drawRamp3D(o);else if(o.t==='rail')drawRail3D(o);else drawGround3D(o);ctx.restore();continue;}
     if(o.t==='ramp'){drawRamp3D(o);continue;}
     if(o.t==='rail'){drawRail3D(o);continue;}
     if(o.t==='boost'||o.t==='ice'){drawGround3D(o);continue;}
-    if(o.t==='flake'){const q=bp(o.x,o.y,o.fz+16+Math.sin(game.t*3+o.ph)*3);if(!q||q.d>2400)continue;ctx.save();ctx.globalAlpha=clamp((2400-q.d)/500,0,1);ctx.translate(q.x,q.y);ctx.rotate(game.t*.8+o.ph);ctx.drawImage(flakeImg,-20*q.k,-20*q.k,40*q.k,40*q.k);ctx.restore();continue;}
+    if(o.t==='flake'){const q=bp(o.x,o.y,o.fz+16+Math.sin(game.t*3+o.ph)*3);if(!q||q.d>2400)continue;ctx.save();ctx.globalAlpha=clamp((2400-q.d)/500,0,1)*tv;ctx.translate(q.x,q.y);ctx.rotate(game.t*.8+o.ph);ctx.drawImage(flakeImg,-20*q.k,-20*q.k,40*q.k,40*q.k);ctx.restore();continue;}
     if(o.t==='player'){const q=bp(P.x,P.y,P.z),sh=bp(P.x,P.y,0);if(!q)continue;
       if(sh){ctx.fillStyle='rgba(58,108,170,.22)';ctx.beginPath();ctx.ellipse(sh.x,sh.y,26*sh.k/(1+P.z/200),7*sh.k/(1+P.z/200),0,0,TAU);ctx.fill();}
       ctx.save();ctx.translate(q.x,q.y);ctx.scale(q.k*1.25,q.k*1.25);if(P.inv>0&&((P.inv*10)|0)%2)ctx.globalAlpha=.55;
@@ -1916,8 +1921,9 @@ function drawBack(env,k){
     if(o.t==='fall'){sprite(o,()=>drawFall(o));continue;}
     const bub=[];
     sprite(o,()=>{switch(o.t){case'tree':drawTree(o);break;case'rock':drawRock(o);break;case'snowman':drawSnowman(o);break;case'pillar':drawPillar(o);break;case'crystal':drawCrystal(o);break;case'cabin':drawCabin(o);break;case'animal':drawAnimal(o,bub);break;case'bank':drawBank(o);break;default:if(DECOR[o.t])DECOR[o.t].draw(o);}
-      const D=DECOR[o.t];if(D&&D.glow)D.glow(o);for(const b of bub)drawBubble(b);});
+      const D=DECOR[o.t];if(D&&D.glow)D.glow(o);for(const b of bub)drawBubble(b);},false,tv);
   }
+  {const fy=bp(0,BC.y+SEE-60,0),ny=bp(0,BC.y+SEE+260,0);if(fy&&ny){const mc=css3(mix3(env.ground,[255,255,255],.55));const mg=ctx.createLinearGradient(0,BHY-30,0,fy.y);mg.addColorStop(0,css3(mix3(env.ground,[255,255,255],.55),.96));mg.addColorStop(clamp((ny.y-(BHY-30))/(fy.y-(BHY-30)),0,1),css3(mix3(env.ground,[255,255,255],.55),.9));mg.addColorStop(1,css3(mix3(env.ground,[255,255,255],.55),0));ctx.fillStyle=mg;ctx.fillRect(0,BHY-30,W,fy.y-(BHY-30));}}
   for(const p of parts){const q=bp(p.x,p.y,p.z);if(!q)continue;const a=clamp(p.life/p.max,0,1),r=p.r*q.k;
     if(p.k==='puff'){ctx.globalAlpha=a*.9;ell(q.x,q.y,r,r*.85,'#ffffff');}else if(p.k==='smoke'){ctx.globalAlpha=a*.5;ell(q.x,q.y,r,r,'#e9f1fa');}
     else if(p.k==='bubble'){ctx.globalAlpha=a*.8;ctx.strokeStyle='#ffffff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(q.x,q.y,r*1.6,0,TAU);ctx.stroke();}
