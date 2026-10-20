@@ -9,6 +9,9 @@ A cozy snowboarding game that runs in the browser. Carve, jump, spin, grab and f
 - **Trick Challenge:** 15 runs with goals and stars. Play alone, or tap Challenge friends to get a code; the first rider to finish all 3 goals wins.
 - **Race Friends:** create a race to get a 4-letter code, send it to friends, and race each other live on the same course.
 
+## Accounts
+Tap **Sign in** on the main menu to create an account with email and password. Coins, gear, places and stars are saved to the account, so progress follows you to any device. The table setup is in `supabase.sql`; each player can only read and change their own save.
+
 ## Controls
 - Left / Right: carve, and spin in the air
 - Space: jump, and press again in the air to flip

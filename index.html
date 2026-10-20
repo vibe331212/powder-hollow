@@ -226,6 +226,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       <div class="menu-foot">
         <span class="stat" title="Coins"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5c542" stroke="#d99a1e" stroke-width="2"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#fff3c4" stroke-width="2"/></svg><span id="menuCoins">0</span> coins</span>
         <span class="stat" title="Stars earned"><svg viewBox="0 0 24 24" fill="#2f7fd6"><path d="M12 2.5l2.9 6.2 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.4 1.5-6.7-5.1-4.6 6.8-.7z"/></svg><span id="menuStars">0</span> / <span id="menuStarsTotal">45</span></span>
+        <button class="chip" id="btnAccount">Sign in</button>
         <button class="chip" id="btnSound">Sound on</button>
       </div>
       <details class="keys" id="keysBox" open>
@@ -288,6 +289,30 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
     </div>
   </section>
 
+  <section id="account" class="screen" hidden>
+    <div class="panel stack">
+      <div class="card-head"><div><p class="eyebrow">Your account</p><h2 id="acctTitle">Sign in</h2></div><button class="chip" id="acctBack">Back</button></div>
+      <div id="acctOut" class="stack">
+        <div class="tabs" role="tablist"><button class="tab" id="tabIn" role="tab" aria-selected="true">Sign in</button><button class="tab" id="tabUp" role="tab" aria-selected="false">Create account</button></div>
+        <form id="acctForm" class="stack" novalidate>
+          <label class="field" for="acctName" id="acctNameRow" hidden><span>Player name</span><input id="acctName" maxlength="14" autocomplete="nickname"></label>
+          <label class="field" for="acctEmail"><span>Email</span><input id="acctEmail" type="email" autocomplete="email" inputmode="email"></label>
+          <label class="field" for="acctPass"><span>Password (at least 6 characters)</span><input id="acctPass" type="password" autocomplete="current-password"></label>
+          <button class="btn primary small" id="acctSubmit" type="submit">Sign in</button>
+          <button class="chip" id="acctForgot" type="button">Forgot password?</button>
+        </form>
+      </div>
+      <div id="acctIn" class="stack" hidden>
+        <p class="tag" id="acctWho"></p>
+        <p class="lockline">Your coins, gear, places and stars are saved to your account, so you can keep playing on any device.</p>
+        <label class="field" for="acctRename"><span>Player name</span><input id="acctRename" maxlength="14" autocomplete="nickname"></label>
+        <button class="btn small" id="acctSaveName" type="button">Save name</button>
+        <button class="btn small" id="acctSignOut" type="button">Sign out</button>
+      </div>
+      <p class="lockline" id="acctMsg" role="status"></p>
+    </div>
+  </section>
+
   <section id="pause" class="screen" hidden>
     <div class="panel stack">
       <div><p class="eyebrow">Paused</p><h2>Catch your breath</h2></div>
@@ -325,7 +350,7 @@ const $=id=>document.getElementById(id);
 /* ---------- Save data ---------- */
 const store={get(k,d){try{const v=localStorage.getItem('powderhollow_'+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem('powderhollow_'+k,JSON.stringify(v));}catch(e){}}};
 const save=Object.assign({flakes:0,coins:0,stars:{},gear:{},owned:null,muted:false},store.get('save',{}));
-function persist(){store.set('save',save);}
+function persist(){store.set('save',save);if(window.cloudQueue)window.cloudQueue();}
 
 /* ---------- Gear and challenges ---------- */
 const GEAR={
@@ -926,7 +951,7 @@ function finishRun(){
 }
 
 /* ---------- Screens ---------- */
-const SCREENS=['menu','challenges','locker','pause','results','race'];
+const SCREENS=['menu','challenges','locker','pause','results','race','account'];
 function showScreen(id){SCREENS.forEach(s=>$(s).hidden=s!==id);}
 function starSvg(on){return`<svg class="star${on?' on':''}" viewBox="0 0 24 24" aria-label="${on?'Star earned':'Star not earned'}"><path d="M12 2.5l2.9 6.2 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.4 1.5-6.7-5.1-4.6 6.8-.7z"/></svg>`;}
 function updateMenuStats(){$('menuCoins').textContent=coinStr();$('menuStars').textContent=totalStars();$('menuStarsTotal').textContent=CHALLENGES.length*3;$('btnSound').textContent=save.muted?'Sound off':'Sound on';}
@@ -1127,6 +1152,78 @@ CHALLENGES.forEach((c,i)=>{const o=document.createElement('option');o.value=Stri
 $('pickSel').addEventListener('change',()=>{RC.pick=+$('pickSel').value;trackMe();renderLobby();});
 $('btnLeaveRace').onclick=()=>{sfx('ui');leaveRoom();$('raceSetup').hidden=false;$('raceLobby').hidden=true;};
 $('raceName').addEventListener('change',()=>{save.name=cleanName($('raceName').value);$('raceName').value=save.name;persist();});
+
+
+/* ---------- Accounts (Supabase Auth) + cloud saves ---------- */
+const AC={user:null,mode:'in',timer:0,loading:false};
+const acctMsg=t=>{$('acctMsg').textContent=t||'';};
+function mergeSave(cloud){
+  if(!cloud||typeof cloud!=='object')return;
+  save.coins=Math.max(+save.coins||0,+cloud.coins||0);save.flakes=Math.max(+save.flakes||0,+cloud.flakes||0);
+  if(cloud.stars&&typeof cloud.stars==='object')for(const id in cloud.stars){const a=save.stars[id]||[false,false,false],b=cloud.stars[id]||[];save.stars[id]=a.map((v,i)=>!!(v||b[i]));}
+  if(cloud.owned&&typeof cloud.owned==='object')for(const sl of SLOTS){const c=Array.isArray(cloud.owned[sl])?cloud.owned[sl]:[];for(const id of c)if(GEAR[sl].some(g=>g.id===id)&&!save.owned[sl].includes(id))save.owned[sl].push(id);}
+  if(cloud.gear&&typeof cloud.gear==='object')for(const sl of SLOTS){const id=cloud.gear[sl];if(id&&owns(sl,id))save.gear[sl]=id;}
+}
+async function cloudLoad(){
+  if(!AC.user)return;AC.loading=true;
+  try{const{data,error}=await rcClient().from('powderhollow_saves').select('name,save').eq('user_id',AC.user.id).maybeSingle();
+    if(error)throw error;
+    if(data){if(data.name)save.name=cleanName(data.name);mergeSave(data.save);}
+    store.set('save',save);await cloudSaveNow();
+  }catch(e){acctMsg('Signed in, but your saved progress could not load right now. It will try again.');}
+  AC.loading=false;updateMenuStats();buildRoute();
+}
+async function cloudSaveNow(){
+  if(!AC.user)return;const body={coins:save.coins,flakes:save.flakes,stars:save.stars,owned:save.owned,gear:save.gear};
+  try{await rcClient().from('powderhollow_saves').upsert({user_id:AC.user.id,name:cleanName(save.name),save:body,updated_at:new Date().toISOString()});}catch(e){}
+}
+window.cloudQueue=()=>{if(!AC.user||AC.loading)return;clearTimeout(AC.timer);AC.timer=setTimeout(cloudSaveNow,2500);};
+function setAcctMode(m){AC.mode=m;$('tabIn').setAttribute('aria-selected',m==='in');$('tabUp').setAttribute('aria-selected',m==='up');$('acctNameRow').hidden=m!=='up';$('acctSubmit').textContent=m==='up'?'Create account':'Sign in';$('acctPass').autocomplete=m==='up'?'new-password':'current-password';$('acctTitle').textContent=m==='up'?'Create an account':'Sign in';acctMsg('');}
+function renderAccount(){
+  const on=!!AC.user;$('acctOut').hidden=on;$('acctIn').hidden=!on;
+  if(on){$('acctTitle').textContent='Signed in';$('acctWho').textContent='Signed in as '+cleanName(save.name)+' ('+(AC.user.email||'')+')';$('acctRename').value=save.name;}
+  $('btnAccount').textContent=on?cleanName(save.name):'Sign in';
+}
+function openAccount(){
+  showScreen('account');
+  if(!raceReady()){$('acctOut').hidden=true;$('acctIn').hidden=true;$('acctTitle').textContent='Accounts';acctMsg('Signing in needs the online version of the game: '+ONLINE_URL);return;}
+  renderAccount();if(!AC.user){setAcctMode(AC.mode);$('acctName').value=save.name;}
+}
+async function acctSubmit(e){
+  e.preventDefault();const email=$('acctEmail').value.trim(),pass=$('acctPass').value;
+  if(!/^\S+@\S+\.\S+$/.test(email)){acctMsg('Type your email address, like name@example.com.');return;}
+  if(pass.length<6){acctMsg('Your password needs at least 6 characters.');return;}
+  const sb=rcClient();$('acctSubmit').disabled=true;acctMsg(AC.mode==='up'?'Creating your account...':'Signing in...');
+  try{
+    if(AC.mode==='up'){
+      const name=cleanName($('acctName').value||save.name);save.name=name;persist();
+      const{data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:ONLINE_URL,data:{powderhollow_name:name}}});
+      if(error)throw error;
+      if(data.session){acctMsg('Account created. Your progress is now saved.');}
+      else{acctMsg('Almost done. We sent a confirmation link to '+email+'. Open it, then come back here and sign in.');setAcctMode('in');$('acctEmail').value=email;}
+    }else{
+      const{error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;acctMsg('Signed in.');
+    }
+    $('acctPass').value='';
+  }catch(err){const m=String(err&&err.message||'');
+    acctMsg(/invalid login/i.test(m)?'That email and password do not match. Check them and try again.':/not confirmed/i.test(m)?'Confirm your email first. Open the link we sent you, then sign in.':/already registered/i.test(m)?'There is already an account with that email. Try signing in instead.':/rate limit/i.test(m)?'Too many tries in a row. Wait a minute and try again.':'Something went wrong: '+m);}
+  $('acctSubmit').disabled=false;
+}
+function initAccounts(){
+  if(!raceReady())return;const sb=rcClient();
+  sb.auth.onAuthStateChange((ev,session)=>{const u=session&&session.user||null;const was=AC.user&&AC.user.id;AC.user=u;
+    if(u&&u.id!==was){if(u.user_metadata&&u.user_metadata.powderhollow_name&&/^Rider \d+$/.test(save.name))save.name=cleanName(u.user_metadata.powderhollow_name);cloudLoad();}
+    renderAccount();});
+}
+$('btnAccount').onclick=()=>{audioStart();sfx('ui');openAccount();};
+$('acctBack').onclick=()=>{sfx('ui');showScreen('menu');updateMenuStats();};
+$('tabIn').onclick=()=>setAcctMode('in');$('tabUp').onclick=()=>setAcctMode('up');
+$('acctForm').addEventListener('submit',acctSubmit);
+$('acctForgot').onclick=async()=>{const email=$('acctEmail').value.trim();if(!/^\S+@\S+\.\S+$/.test(email)){acctMsg('Type your email above first, then tap Forgot password.');return;}
+  try{const{error}=await rcClient().auth.resetPasswordForEmail(email,{redirectTo:ONLINE_URL});if(error)throw error;acctMsg('If there is an account for '+email+', we sent it a link to reset the password.');}catch(e){acctMsg('Could not send the reset email right now. Try again in a minute.');}};
+$('acctSignOut').onclick=async()=>{sfx('ui');await cloudSaveNow();try{await rcClient().auth.signOut();}catch(e){}AC.user=null;renderAccount();openAccount();acctMsg('Signed out. Your progress stays saved in your account.');};
+$('acctSaveName').onclick=()=>{save.name=cleanName($('acctRename').value);persist();renderAccount();acctMsg('Name saved.');};
 
 /* ---------- Main loop ---------- */
 function update(dt){
@@ -1793,7 +1890,7 @@ function sfx(n,arg){
 }
 
 /* ---------- Boot ---------- */
-resolveWeather();buildRoute();resize();resetWorld();updateMenuStats();
+resolveWeather();buildRoute();resize();resetWorld();updateMenuStats();initAccounts();
 if(isTouch)$('keysBox').open=false;
 document.addEventListener('pointerdown',()=>audioStart(),{once:true});
 requestAnimationFrame(t=>{last=t;loop(t);});
