@@ -247,7 +247,6 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <button class="btn primary" id="btnFree">Free Ride<span>No score. Just you and the snow.</span></button>
         <button class="btn" id="btnChallenge">Trick Challenge<span>15 runs with goals. Play alone or challenge friends</span></button>
         <button class="btn" id="btnRace">Race Friends<span>Share a code and race each other</span></button>
-        <button class="btn" id="btnVillage">Village<span>Walk around town, shop the shelves, ride the lift</span></button>
         <button class="btn" id="btnLocker">Shop<span>Spend coins on new places, riders, gear and music</span></button>
       </div>
       <div class="menu-foot">
@@ -1771,7 +1770,7 @@ function drawVillage(){
     ctx.fillStyle='rgba(255,255,255,.9)';for(let i=0;i<70;i++){const f=snow[i];f.y+=f.vy*.012;if(f.y>1)f.y-=1;ctx.globalAlpha=.75;ctx.beginPath();ctx.arc(f.x*W,(1-f.y)*H,f.r,0,TAU);ctx.fill();}ctx.globalAlpha=1;}
   if(VIL.fade>0){const a2=VIL.fade>.8?(1.6-VIL.fade)/.8:VIL.fade/.8;ctx.fillStyle='rgba(8,16,40,'+clamp(a2,0,1)+')';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffffff';ctx.globalAlpha=clamp(a2,0,1);ctx.font='800 36px Sniglet, system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(VIL.sleepMsg+'  Zzz',W/2,H/2);ctx.globalAlpha=1;}
 }
-$('btnVillage').onclick=()=>{sfx('ui');enterVillage('out',VIL_SPAWN.start);};
+
 $('vMenu').onclick=()=>{sfx('ui');leaveVillage();};
 $('vPrompt').onclick=()=>villageAct();
 const liftStart=fn=>{showScreen(null);game.fromVillage=true;$('vhud').hidden=true;fn();};
@@ -3170,7 +3169,7 @@ function sfx(n,arg){
 
 /* ---------- Boot ---------- */
 resolveWeather();buildRoute();resize();resetWorld();updateMenuStats();initAccounts();
-if(save.village)enterVillage('out',VIL_SPAWN.start);
+if(save.village){save.village=false;persist();}
 if(isTouch)$('keysBox').open=false;
 document.addEventListener('pointerdown',()=>audioStart(),{once:true});
 requestAnimationFrame(t=>{last=t;loop(t);});
