@@ -46,6 +46,18 @@ h3{font-size:18px}
 /* Menu */
 #menu{justify-content:flex-start}
 #menu .panel{margin-left:clamp(0px,5vw,72px);margin-right:auto;display:grid;gap:18px}
+#menu .panel.side{margin-left:auto;margin-right:clamp(0px,5vw,72px);max-width:370px;gap:12px;padding:20px}
+.sideCard{background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:8px}
+.sideCard h3{margin:0;font-family:var(--f-display);font-size:21px;color:var(--deep)}
+.sideCard p{margin:0;font-size:13px;line-height:1.4;color:var(--ink-soft)}
+.sideCard .eyebrow{margin:0}
+.sideCard .goals{margin:0}
+.sideRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--ink-soft)}
+.sideRow .btn{flex:0 0 auto;font-size:17px;padding:9px 16px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.statgrid div{background:var(--snow);border:1px solid var(--line);border-radius:12px;padding:7px 9px;font-size:11px;font-weight:700;color:var(--ink-soft)}
+.statgrid b{display:block;font-family:var(--f-display);font-size:17px;color:var(--deep)}
+@media (max-width:1060px){#menu{flex-direction:column;justify-content:flex-start;gap:14px}#menu .panel,#menu .panel.side{margin:0 auto;max-width:440px}}
 .logo{font-size:clamp(54px,9vw,86px);line-height:.86;letter-spacing:-.01em;color:var(--deep);text-shadow:0 3px 0 var(--sky),0 7px 0 rgba(47,127,214,.18)}
 .logo em{font-style:normal;color:var(--blue)}
 .tag{margin:0;color:var(--ink-soft);line-height:1.5;max-width:36ch}
@@ -246,9 +258,6 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       <div class="menu-buttons">
         <button class="btn primary" id="btnFree">Free Ride<span>No score. Just you and the snow.</span></button>
         <button class="btn" id="btnChallenge">Trick Challenge<span>15 runs with goals. Play alone or challenge friends</span></button>
-        <button class="btn" id="btnDaily">Daily Challenge<span id="dailySub">A new challenge every day</span></button>
-        <button class="btn" id="btnAval">Avalanche Escape<span>Outrun the avalanche to the bottom</span></button>
-        <button class="btn" id="btnPipe">Halfpipe<span>75 seconds. Ride the walls and go huge</span></button>
         <button class="btn" id="btnRace">Race Friends<span>Share a code and race each other</span></button>
         <button class="btn" id="btnLocker">Shop<span>Spend coins on new places, riders, gear and music</span></button>
       </div>
@@ -272,6 +281,27 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
           <span><kbd>V</kbd></span><span>Switch between top view and behind view</span>
         </div>
       </details>
+    </div>
+    <div class="panel side" id="menuSide">
+      <div class="sideCard">
+        <div class="card-head"><div><p class="eyebrow">Today</p><h3>Daily Challenge</h3></div><span class="chip" id="dStreak">Streak 0</span></div>
+        <ul class="goals" id="dGoals"></ul>
+        <div class="sideRow"><span id="dPrize"></span><button class="btn small primary" id="btnDaily">Play</button></div>
+      </div>
+      <div class="sideCard">
+        <div class="card-head"><div><p class="eyebrow">Survival</p><h3>Avalanche Escape</h3></div></div>
+        <p id="avInfo">Outrun the avalanche to the bottom of the mountain.</p>
+        <div class="sideRow"><span id="avPrize">Escape bonus 2,000 coins</span><button class="btn small" id="btnAval">Run for it</button></div>
+      </div>
+      <div class="sideCard">
+        <p class="eyebrow">Your rider</p>
+        <div class="statgrid" id="riderStats"></div>
+        <div class="sideRow"><span id="nextTrick"></span><button class="btn small" id="btnTrickShop">Tricks shop</button></div>
+      </div>
+      <div class="sideCard">
+        <div class="sideRow"><p class="eyebrow" style="margin:0">Rider tip</p><button class="chip" id="tipNext">Next tip</button></div>
+        <p id="tipText"></p>
+      </div>
     </div>
   </section>
 
@@ -2433,10 +2463,23 @@ finishRun=function(){const R=run;if(!R)return;
     else ul.textContent='Finish all 3 goals in one run to win '+dailyPrize().toLocaleString()+' coins.';
     persist();updateMenuStats();}};
 const _ums=updateMenuStats;
-updateMenuStats=function(){_ums();const el=$('dailySub');if(el)el.textContent=doneToday()?'Done today! New one tomorrow (streak '+(save.dailyStreak||1)+')':'Today: '+dailyCh().goals.map(g=>g.t).join(', ')+'.  Prize '+dailyPrize().toLocaleString()+' coins';};
+const TIPS=['Hold Up or Down in the air for a front flip or backflip. Each one is worth 200 points.','Land tricks in a row to build a combo. It goes all the way up to x8.','Mix spins, grabs, flips and rails in one combo for extra style points.','Hold Down on the snow to tuck and go faster. Great for escaping avalanches.','Speed boosts give you a huge push. Line them up with a ramp for big air.','Big ramps give more air time, so you can fit two flips in one jump.','Hold your grab a little longer for more points. With Tweaked Grabs it is worth 1.5x.','Wiping out ends your combo, so land clean before trying something risky.','Press V to switch between top view and behind view.','Come back every day for a new Daily Challenge. Your streak makes the prize bigger.'];
+let tipI=Math.floor(Math.random()*TIPS.length);
+function renderSide(){if(!$('menuSide'))return;const ch=dailyCh(),dn=doneToday();
+  $('dGoals').innerHTML=ch.goals.map(g=>`<li>${starSvg(dn)}<span>${g.t}</span></li>`).join('');
+  $('dStreak').textContent='Streak '+(dn?(save.dailyStreak||1):Math.max(0,dailyStreakNext()-1));
+  $('dPrize').textContent=dn?'Done today! New one tomorrow':'Prize '+dailyPrize().toLocaleString()+' coins';
+  $('btnDaily').textContent=dn?'Play again':'Play';
+  $('avInfo').textContent=save.avBest?'Best run: '+save.avBest.toLocaleString()+' m. Escaped '+(save.avEsc||0)+' time'+((save.avEsc||0)===1?'':'s')+'. Can you beat it?':'Outrun the avalanche to the bottom of the mountain. Do not wipe out!';
+  const st=[['Coins',coinStr()],['Stars',totalStars()+'/45'],['Tricks',save.tricks.length+'/'+TRICKS.length],['Snowflakes',(save.flakes||0).toLocaleString()],['Best escape',save.avBest?save.avBest.toLocaleString()+' m':'None'],['Daily streak',String(dn?(save.dailyStreak||1):Math.max(0,dailyStreakNext()-1))]];
+  $('riderStats').innerHTML=st.map(([k,v])=>`<div>${k}<b>${v}</b></div>`).join('');
+  const nt=TRICKS.find(t=>!hasTrick(t.id));$('nextTrick').textContent=nt?'Next trick: '+nt.name+' ('+nt.price.toLocaleString()+')':'You unlocked every trick!';
+  $('tipText').textContent=TIPS[tipI%TIPS.length];}
+updateMenuStats=function(){_ums();renderSide();};
+$('tipNext').onclick=()=>{sfx('ui');tipI++;renderSide();};
+$('btnTrickShop').onclick=()=>{sfx('ui');shopTab='tricks';shopSel=null;$('btnLocker').click();shopTab='tricks';renderShop();};
 $('btnDaily').onclick=()=>{sfx('ui');startRun('challenge',dailyCh());};
 $('btnAval').onclick=()=>{sfx('ui');startRun('aval');};
-$('btnPipe').onclick=()=>{sfx('ui');startRun('pipe');};
 updateMenuStats();
 
 buildShelves();
