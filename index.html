@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793204098">
+<meta name="ph-build" content="1793204686">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +65,11 @@ h3{font-size:18px}
 .sideRow .btn{flex:0 0 auto;font-size:17px;padding:9px 16px}
 .sellLink{display:inline-block;margin-top:5px;font-family:var(--f-body);font-size:11px;font-weight:800;color:#c0304f;background:#ffe6ec;border:1px solid #f6b3c3;border-radius:8px;padding:3px 8px;cursor:pointer}
 .sellLink:hover{background:#ffd2dd}
+.sellTile{display:grid;gap:4px;justify-items:center;text-align:center}
+.sellBig{display:block;margin-top:4px;width:100%;background:#e2486b;color:#fff;border-radius:10px;padding:8px 6px;font-family:var(--f-body);font-size:13px;font-weight:800}
+.sellTile:hover .sellBig{background:#c0304f}
+.sellEmpty{grid-column:1/-1;padding:20px;text-align:center;color:var(--ink-soft);font-weight:700}
+.sellTop{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:800;color:var(--deep);flex-wrap:wrap}
 #hudWarm{display:grid;grid-template-columns:62px 130px;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--ink-soft);margin-top:4px}
 #hudWarm b{display:block;height:10px;border-radius:9px;background:#d6e8fa;overflow:hidden;border:1px solid #bcd6f2}
 #hudWarm i{display:block;height:100%;width:50%;border-radius:9px;transition:width .2s,background-color .4s}
@@ -278,7 +283,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <button class="btn primary" id="btnFree">Free Ride<span>No score. Just you and the snow.</span></button>
         <button class="btn" id="btnChallenge">Trick Challenge<span>15 runs with goals. Play alone or challenge friends</span></button>
         <button class="btn" id="btnRace">Race Friends<span>Share a code and race each other</span></button>
-        <button class="btn" id="btnLocker">Shop<span>Spend coins on new places, riders, gear and music</span></button>
+        <button class="btn" id="btnLocker">Shop<span>Buy new gear, or sell your stuff for coins</span></button>
       </div>
       <div class="menu-foot">
         <span class="stat" title="Coins"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5c542" stroke="#d99a1e" stroke-width="2"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#fff3c4" stroke-width="2"/></svg><span id="menuCoins">0</span> coins</span>
@@ -1163,12 +1168,13 @@ function swatch(sl,g){
 function placeSub(sl,g){if(sl!=='place')return'';const t=g.sub||g.places.map(id=>BIOMES[placeIdx(id)].name).join(' + ');return`<small>${t}</small>`;}
 function renderShop(){
   $('shopCoins').textContent=coinStr();
-  $('shopTabs').innerHTML=SLOTS.concat(['tricks','medals']).map(sl=>`<button class="tab" role="tab" data-tab="${sl}" aria-selected="${sl===shopTab}">${SLOT_NAMES[sl]||(sl==='tricks'?'Tricks':'Medals')}</button>`).join('');
+  $('shopTabs').innerHTML=['sell'].concat(SLOTS,['tricks','medals']).map(sl=>`<button class="tab" role="tab" data-tab="${sl}" aria-selected="${sl===shopTab}">${SLOT_NAMES[sl]||({tricks:'Tricks',medals:'Medals',sell:'Sell Stuff'})[sl]}</button>`).join('');
   $('shopTabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{sfx('ui');shopTab=b.dataset.tab;shopSel=null;previewGear=null;previewMusic=null;$('btnBuy').hidden=true;$('lockLine').textContent='Every point you score earns half as many coins.';renderShop();});
   const sl=shopTab;
   if(!shopSel)$('btnSell').hidden=true;
   if(sl==='tricks'){renderTrickShop();return;}
   if(sl==='medals'){renderMedalShop();return;}
+  if(sl==='sell'){renderSellShop();return;}
   $('gearSecs').innerHTML=GEAR[sl].map(g=>{const own=owns(sl,g.id),eq=save.gear[sl]===g.id,sel=shopSel===g.id;
     const status=(eq?'<span class="tagline">Equipped</span>':own?'<span class="tagline">Owned</span>':`<span class="price">${COIN_SVG}${g.price.toLocaleString()}</span>`)+(own&&g.price>0?`<span class="sellLink">Sell for ${Math.floor(g.price/2).toLocaleString()}</span>`:'');
     return`<button class="gear${eq||sel?' sel':''}${own?'':' lock'}" data-id="${g.id}" aria-pressed="${eq}">${swatch(sl,g)}${g.name}${placeSub(sl,g)}${status}</button>`;}).join('');
@@ -3504,6 +3510,25 @@ const _updateW=update;
 update=function(dt){_updateW(dt);if(game.state==='play')warmTick(dt);else if(!run)$('hudWarm').hidden=true;};
 const _pickItemW=pickItem;
 pickItem=function(sl,id){_pickItemW(sl,id);if(sl==='jacket'){const n=Math.round(jacketWarm(id)*100);$('lockLine').textContent+=n?' Warmth bonus in Free Ride: +'+n+'%.':' This jacket gives no extra warmth. Pricier jackets keep you warmer.';}};
+
+
+/* ---------- Sell Stuff tab: everything you can sell in one place ---------- */
+function sellList(){const L=[];
+  for(const sl of SLOTS)for(const id of save.owned[sl]){const g=gearById(sl,id);if(g.id===id&&g.price>0)L.push({k:'gear',sl,id,name:g.name,cat:SLOT_NAMES[sl],val:Math.floor(g.price/2),sw:swatch(sl,g),eq:save.gear[sl]===id});}
+  for(const id of save.tricks){const t=TRICKS.find(x=>x.id===id);if(t)L.push({k:'trick',id,name:t.name,cat:'Trick',val:Math.floor(t.price/2),sw:`<span class="sw music">${TRICK_SVG}</span>`});}
+  for(const m of MEDALS)if(save.medals[m.id]>0)L.push({k:'medal',id:m.id,name:m.name+' x'+save.medals[m.id],cat:'Medal',val:m.val,sw:`<span class="sw rider" style="background:radial-gradient(circle at 35% 35%,#ffffff,${m.c} 45%,${m.c2});border:2px solid ${m.c2}"></span>`});
+  return L;}
+function renderSellShop(){const L=sellList(),tot=L.reduce((t,x)=>t+x.val*(x.k==='medal'?save.medals[x.id]:1),0);
+  $('btnBuy').hidden=true;$('btnSell').hidden=true;
+  $('lockLine').textContent=L.length?'Tap anything to sell it. Gear and tricks sell for half of what they cost. You can buy them again later.':'Buy something in the other tabs or win Big Air medals, then sell them here.';
+  $('gearSecs').innerHTML=(L.length?`<div class="sellTop"><span>${L.length} thing${L.length>1?'s':''} you can sell</span><span>Worth ${tot.toLocaleString()} coins</span></div>`:'<div class="sellEmpty">You do not have anything to sell yet. Free starter items cannot be sold.</div>')+
+    L.map((x,i)=>`<button class="gear sellTile" data-i="${i}">${x.sw}${x.name}<small>${x.cat}${x.eq?'  (wearing)':''}</small><span class="sellBig">Sell for ${x.val.toLocaleString()}</span></button>`).join('');
+  $('gearSecs').querySelectorAll('.sellTile').forEach(b=>b.onclick=()=>{const x=L[+b.dataset.i];
+    if(x.k==='gear'){doSell(x.val*2,()=>sellGear(x.sl,x.id),x.name);}
+    else if(x.k==='trick'){doSell(x.val*2,()=>{save.tricks=save.tricks.filter(t=>t!==x.id);},x.name);}
+    else{if(!save.medals[x.id])return;save.medals[x.id]--;save.coins+=x.val;persist();sfx('goal');const msg='Sold a '+MEDALS.find(m=>m.id===x.id).name.toLowerCase()+' for '+x.val.toLocaleString()+' coins!';toast(msg);renderShop();$('lockLine').textContent=msg;updateMenuStats();}
+    shopTab='sell';renderShop();});}
+try{if(new URLSearchParams(location.search).get('bonus')==='sextillion'&&!save.bonusSext){save.bonusSext=true;save.coins+=1e22;persist();setTimeout(()=>{try{updateMenuStats();}catch(e){}toast('Bonus! You got 10 sextillion coins.');},700);}}catch(e){}
 
 if(save.village){save.village=false;persist();}
 if(isTouch)$('keysBox').open=false;
