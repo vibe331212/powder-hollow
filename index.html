@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793204686">
+<meta name="ph-build" content="1793224933">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3266,6 +3266,7 @@ function draw(){
   for(const b of bubbles)drawBubble(b);
   if(P.bubble)drawBubble({x:P.x,y:P.y-42,text:P.bubble,a:1});
   ctx.restore();
+  if(typeof drawTopFog==='function')drawTopFog();
   }
   ctx.fillStyle=k>.3?'rgba(200,240,255,.8)':'rgba(255,255,255,.9)';
   drawAmbient();
@@ -3480,14 +3481,17 @@ GEAR.goggles.push({id:'clearview',name:'Fog-Free Glasses',price:500000,lens:['#7
 GEAR.scarf.push({id:'heatscarf',name:'Heated Scarf',price:500000,c1:'#ff6a2a',c2:'#ffd23f',desc:'Keeps you toasty warm forever in Free Ride, so you always get the full speed boost.'});
 const noFog=()=>save.gear.goggles==='clearview';
 function drawFog(){if(noFog())return;const hy=clamp(BHY/H,.05,.9);
-  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(228,237,247,.6)');g.addColorStop(hy,'rgba(234,241,249,.95)');g.addColorStop(Math.min(.96,hy+.3),'rgba(234,241,249,.6)');g.addColorStop(1,'rgba(234,241,249,.14)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  for(let i=0;i<10;i++){const span=W+500,x=((i*211+game.t*(18+i*4)*(i%2?1:-1))%span+span)%span-250,y=BHY+(i%5)*H*.07-20;ctx.globalAlpha=.32;ell(x,y,240,46,'#ffffff');ell(x+120,y+14,170,34,'#f3f7fc');}ctx.globalAlpha=1;}
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(228,237,247,.42)');g.addColorStop(hy,'rgba(234,241,249,.74)');g.addColorStop(Math.min(.96,hy+.3),'rgba(234,241,249,.4)');g.addColorStop(1,'rgba(234,241,249,.08)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<10;i++){const span=W+500,x=((i*211+game.t*(18+i*4)*(i%2?1:-1))%span+span)%span-250,y=BHY+(i%5)*H*.07-20;ctx.globalAlpha=.2;ell(x,y,240,46,'#ffffff');ell(x+120,y+14,170,34,'#f3f7fc');}ctx.globalAlpha=1;}
 const _drawBack=drawBack;
 function riderOverFog(){const q=bp(P.x,P.y,P.z);if(!q)return;ctx.save();ctx.translate(q.x,q.y);ctx.scale(q.k*1.25,q.k*1.25);if(P.inv>0&&((P.inv*10)|0)%2)ctx.globalAlpha=.55;
   if(P.state==='wipe'&&P.banked){drawBank({x:0,y:4});drawHead(0,-14,gearById('hat',save.gear.hat),game.t,gearById('rider',save.gear.rider),gearById('goggles',save.gear.goggles));}
   else drawRiderBack({ang:P.a,spin:P.air?P.spin:0,flip:P.flip,flipDir:P.flipDir,grab:P.grabbing,lean:P.a*.45+P.lean*.3,gear:save.gear,t:game.t,tumble:P.state==='wipe'?P.tumble:0});
   if(P.bubble)drawBubble({x:0,y:-80,text:P.bubble,a:1});ctx.restore();ctx.globalAlpha=1;}
 drawBack=function(env,k){_drawBack(env,k);if(!noFog()){drawFog();riderOverFog();}};
+function drawTopFog(){if(noFog()||game.state==='menu')return;const px=(P.x-cam.x)*S+W/2,py=(P.y-cam.y)*S+H*AY,R=Math.max(W,H);
+  const g=ctx.createRadialGradient(px,py+H*.06,Math.min(W,H)*.13,px,py+H*.06,R*.62);g.addColorStop(0,'rgba(234,241,249,0)');g.addColorStop(.35,'rgba(234,241,249,.5)');g.addColorStop(1,'rgba(234,241,249,.8)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<9;i++){const span=W+500,x=((i*233+game.t*(14+i*3)*(i%2?1:-1))%span+span)%span-250,y=(i*H*.13+game.t*8*(1+i%3))%(H+200)-100;if(Math.hypot(x-px,y-py)<Math.min(W,H)*.22)continue;ctx.globalAlpha=.22;ell(x,y,230,60,'#ffffff');ell(x+110,y+20,160,44,'#f3f7fc');}ctx.globalAlpha=1;}
 // warmth
 const JMAX=Math.max(...GEAR.jacket.map(j=>j.price||0),1);
 const jacketWarm=id=>clamp((gearById('jacket',id).price||0)/JMAX,0,1);
