@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793192956">
+<meta name="ph-build" content="1793204098">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +65,9 @@ h3{font-size:18px}
 .sideRow .btn{flex:0 0 auto;font-size:17px;padding:9px 16px}
 .sellLink{display:inline-block;margin-top:5px;font-family:var(--f-body);font-size:11px;font-weight:800;color:#c0304f;background:#ffe6ec;border:1px solid #f6b3c3;border-radius:8px;padding:3px 8px;cursor:pointer}
 .sellLink:hover{background:#ffd2dd}
+#hudWarm{display:grid;grid-template-columns:62px 130px;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--ink-soft);margin-top:4px}
+#hudWarm b{display:block;height:10px;border-radius:9px;background:#d6e8fa;overflow:hidden;border:1px solid #bcd6f2}
+#hudWarm i{display:block;height:100%;width:50%;border-radius:9px;transition:width .2s,background-color .4s}
 .actGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .actTile{text-align:left;background:var(--snow);border:2px solid var(--line);border-radius:12px;padding:7px 10px;font-family:var(--f-display);font-size:15px;color:var(--deep);cursor:pointer;transition:border-color .15s,transform .15s}
 .actTile:hover{border-color:#2f7fd6;transform:translateY(-1px)}
@@ -239,6 +242,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <div id="hudMode">Free Ride</div>
         <div id="hudScore"></div>
         <div id="hudFlakes"></div>
+        <div id="hudWarm" hidden><span id="hudWarmLbl">Warm</span><b><i id="hudWarmBar"></i></b></div>
       </div>
       <div id="hudRight">
         <button id="pauseBtn" class="pill" aria-label="Pause"><svg viewBox="0 0 24 24" fill="#16407a"><rect x="6" y="4" width="4" height="16" rx="1.5"/><rect x="14" y="4" width="4" height="16" rx="1.5"/></svg></button>
@@ -3261,7 +3265,7 @@ function draw(){
   drawAmbient();
   const WX=game.weather,nSnow=WX==='sunny'?14:WX==='blizzard'?240:70,bz=WX==='blizzard';
   for(let i=0;i<nSnow;i++){const f=snow[i];f.y+=f.vy*.016*(1+P.v/900)*(bz?2.2:1);f.x+=Math.sin(game.t*.8+f.ph)*.0006-P.a*.0012+(bz?.004+Math.sin(game.t*.35)*.003:0);if(f.y>1)f.y-=1;if(f.x<0)f.x+=1;if(f.x>1)f.x-=1;ctx.globalAlpha=bz?.85:.75;ctx.beginPath();if(bz){ctx.ellipse(f.x*W,(1-f.y)*H,f.r*1.9,f.r*.9,-.5,0,TAU);}else ctx.arc(f.x*W,(1-f.y)*H,f.r,0,TAU);ctx.fill();}
-  if(bz){const fg=ctx.createRadialGradient(W/2,H*AY,Math.min(W,H)*.15,W/2,H*AY,Math.max(W,H)*.8);fg.addColorStop(0,'rgba(236,244,252,0)');fg.addColorStop(1,'rgba(236,244,252,.4)');ctx.globalAlpha=1;ctx.fillStyle=fg;ctx.fillRect(0,0,W,H);}
+  if(bz&&!noFog()){const fg=ctx.createRadialGradient(W/2,H*AY,Math.min(W,H)*.15,W/2,H*AY,Math.max(W,H)*.8);fg.addColorStop(0,'rgba(236,244,252,0)');fg.addColorStop(1,'rgba(236,244,252,.4)');ctx.globalAlpha=1;ctx.fillStyle=fg;ctx.fillRect(0,0,W,H);}
   ctx.globalAlpha=1;
   ctx.textAlign='center';ctx.textBaseline='middle';
   if(game.state==='play'&&game.mode==='race'&&(game.countT>0||game.goT>0)){const txt=game.countT>0?String(Math.ceil(game.countT)):'GO!';const sc=1+(game.countT>0?(game.countT%1):game.goT)*.3;
@@ -3463,6 +3467,43 @@ function pickMedal(id){const x=MEDALS.find(q=>q.id===id);sfx('ui');shopSel=id;$(
   b.onclick=()=>{if(!save.medals[id])return;save.medals[id]--;save.coins+=x.val;persist();sfx('goal');renderShop();pickMedal(id);$('lockLine').textContent='Sold a '+x.name.toLowerCase()+' for '+x.val.toLocaleString()+' coins! '+(save.medals[id]?'You have '+save.medals[id]+' left.':'That was your last one.');updateMenuStats();};
   renderShop();}
 renderSide();
+
+
+/* ---------- Fog in the behind view, Fog-Free Glasses, Free Ride warmth ---------- */
+GEAR.goggles.push({id:'clearview',name:'Fog-Free Glasses',price:500000,lens:['#7fe3ff','#ffffff'],strap:'#ffd23f',desc:'Clears away all the fog everywhere, even in blizzards.'});
+GEAR.scarf.push({id:'heatscarf',name:'Heated Scarf',price:500000,c1:'#ff6a2a',c2:'#ffd23f',desc:'Keeps you toasty warm forever in Free Ride, so you always get the full speed boost.'});
+const noFog=()=>save.gear.goggles==='clearview';
+function drawFog(){if(noFog())return;const hy=clamp(BHY/H,.05,.9);
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(228,237,247,.6)');g.addColorStop(hy,'rgba(234,241,249,.95)');g.addColorStop(Math.min(.96,hy+.3),'rgba(234,241,249,.6)');g.addColorStop(1,'rgba(234,241,249,.14)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<10;i++){const span=W+500,x=((i*211+game.t*(18+i*4)*(i%2?1:-1))%span+span)%span-250,y=BHY+(i%5)*H*.07-20;ctx.globalAlpha=.32;ell(x,y,240,46,'#ffffff');ell(x+120,y+14,170,34,'#f3f7fc');}ctx.globalAlpha=1;}
+const _drawBack=drawBack;
+function riderOverFog(){const q=bp(P.x,P.y,P.z);if(!q)return;ctx.save();ctx.translate(q.x,q.y);ctx.scale(q.k*1.25,q.k*1.25);if(P.inv>0&&((P.inv*10)|0)%2)ctx.globalAlpha=.55;
+  if(P.state==='wipe'&&P.banked){drawBank({x:0,y:4});drawHead(0,-14,gearById('hat',save.gear.hat),game.t,gearById('rider',save.gear.rider),gearById('goggles',save.gear.goggles));}
+  else drawRiderBack({ang:P.a,spin:P.air?P.spin:0,flip:P.flip,flipDir:P.flipDir,grab:P.grabbing,lean:P.a*.45+P.lean*.3,gear:save.gear,t:game.t,tumble:P.state==='wipe'?P.tumble:0});
+  if(P.bubble)drawBubble({x:0,y:-80,text:P.bubble,a:1});ctx.restore();ctx.globalAlpha=1;}
+drawBack=function(env,k){_drawBack(env,k);if(!noFog()){drawFog();riderOverFog();}};
+// warmth
+const JMAX=Math.max(...GEAR.jacket.map(j=>j.price||0),1);
+const jacketWarm=id=>clamp((gearById('jacket',id).price||0)/JMAX,0,1);
+const heated=()=>save.gear.scarf==='heatscarf';
+function warmLabel(w){return w>=85?'Hot!':w>=65?'Toasty':w>=40?'Warm':w>=20?'Chilly':'Freezing';}
+function warmColor(w){return w>=85?'#ff5a2a':w>=65?'#ff9a3c':w>=40?'#ffd23f':w>=20?'#8cc8ff':'#4f9ae8';}
+function warmTick(dt){const el=$('hudWarm');if(!run||run.mode!=='free'){if(!el.hidden)el.hidden=true;return;}el.hidden=false;
+  if(run.warm==null){run.warm=45;run.wasWipe=false;run.warmMsg='';}
+  const jw=jacketWarm(save.gear.jacket);
+  if(heated())run.warm=100;
+  else if(!run.finished){const sp=clamp((P.v-150)/650,0,1);run.warm+=(sp*16*(1+.6*jw)-7*(1-.65*jw))*dt;
+    if(P.state==='wipe'&&!run.wasWipe){run.warm=Math.min(run.warm,6);popup('Brrr! Soft snow is cold','Your warmth dropped');}
+    run.warm=clamp(run.warm,0,100);}
+  run.wasWipe=P.state==='wipe';
+  const w=run.warm;
+  if(P.state==='ride'&&!P.air&&!P.grind&&!run.finished){if(w>60)P.v=Math.min(1050,P.v+(w-60)/40*90*dt);else if(w<25)P.v=Math.max(90,P.v-(25-w)/25*70*dt);}
+  const lbl=warmLabel(w);if(lbl!==run.warmMsg){if(run.warmMsg&&lbl==='Hot!')toast('You are hot! Maximum speed boost');else if(run.warmMsg&&lbl==='Freezing')toast('You are freezing! Ride fast to warm up');run.warmMsg=lbl;}
+  $('hudWarmLbl').textContent=lbl;const bar=$('hudWarmBar');bar.style.width=w.toFixed(0)+'%';bar.style.backgroundColor=warmColor(w);}
+const _updateW=update;
+update=function(dt){_updateW(dt);if(game.state==='play')warmTick(dt);else if(!run)$('hudWarm').hidden=true;};
+const _pickItemW=pickItem;
+pickItem=function(sl,id){_pickItemW(sl,id);if(sl==='jacket'){const n=Math.round(jacketWarm(id)*100);$('lockLine').textContent+=n?' Warmth bonus in Free Ride: +'+n+'%.':' This jacket gives no extra warmth. Pricier jackets keep you warmer.';}};
 
 if(save.village){save.village=false;persist();}
 if(isTouch)$('keysBox').open=false;
