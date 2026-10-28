@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793192680">
+<meta name="ph-build" content="1793192956">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,6 +63,8 @@ h3{font-size:18px}
 .sideCard .goals{margin:0}
 .sideRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--ink-soft)}
 .sideRow .btn{flex:0 0 auto;font-size:17px;padding:9px 16px}
+.sellLink{display:inline-block;margin-top:5px;font-family:var(--f-body);font-size:11px;font-weight:800;color:#c0304f;background:#ffe6ec;border:1px solid #f6b3c3;border-radius:8px;padding:3px 8px;cursor:pointer}
+.sellLink:hover{background:#ffd2dd}
 .actGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .actTile{text-align:left;background:var(--snow);border:2px solid var(--line);border-radius:12px;padding:7px 10px;font-family:var(--f-display);font-size:15px;color:var(--deep);cursor:pointer;transition:border-color .15s,transform .15s}
 .actTile:hover{border-color:#2f7fd6;transform:translateY(-1px)}
@@ -119,7 +121,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
 #zone.show{opacity:1;transform:none}
 #zone small{display:block;font-weight:800;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue)}
 #zone b{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,6vw,46px);color:var(--deep);text-shadow:0 0 18px rgba(255,255,255,.95),0 2px 0 var(--snow)}
-#toast{position:absolute;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);opacity:0;transition:opacity .35s,transform .35s;pointer-events:none;background:var(--deep);color:var(--snow);border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+#toast{z-index:80;position:absolute;left:50%;bottom:calc(110px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);opacity:0;transition:opacity .35s,transform .35s;pointer-events:none;background:var(--deep);color:var(--snow);border-radius:999px;padding:10px 18px;font-weight:800;font-size:14px;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 
 /* Touch */
@@ -1164,9 +1166,9 @@ function renderShop(){
   if(sl==='tricks'){renderTrickShop();return;}
   if(sl==='medals'){renderMedalShop();return;}
   $('gearSecs').innerHTML=GEAR[sl].map(g=>{const own=owns(sl,g.id),eq=save.gear[sl]===g.id,sel=shopSel===g.id;
-    const status=eq?'<span class="tagline">Equipped</span>':own?'<span class="tagline">Owned</span>':`<span class="price">${COIN_SVG}${g.price.toLocaleString()}</span>`;
+    const status=(eq?'<span class="tagline">Equipped</span>':own?'<span class="tagline">Owned</span>':`<span class="price">${COIN_SVG}${g.price.toLocaleString()}</span>`)+(own&&g.price>0?`<span class="sellLink">Sell for ${Math.floor(g.price/2).toLocaleString()}</span>`:'');
     return`<button class="gear${eq||sel?' sel':''}${own?'':' lock'}" data-id="${g.id}" aria-pressed="${eq}">${swatch(sl,g)}${g.name}${placeSub(sl,g)}${status}</button>`;}).join('');
-  $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=()=>pickItem(sl,b.dataset.id));
+  $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=e=>{if(e.target.closest('.sellLink')){const g=gearById(sl,b.dataset.id);doSell(g.price,()=>sellGear(sl,g.id),g.name);return;}pickItem(sl,b.dataset.id);});
 }
 function pickItem(sl,id){
   const g=gearById(sl,id);sfx('ui');shopTab=sl;shopSel=id;
@@ -2401,8 +2403,8 @@ const TRICKS=[
 const hasTrick=id=>save.tricks.includes(id);
 const flipV=()=>FLIPV*(hasTrick('quickflip')?1.35:1);
 const TRICK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="#2f7fd6" stroke-width="2.4" stroke-linecap="round"><path d="M4 16c3-8 13-8 16 0"/><path d="M17 11l3 5-5 1"/></svg>';
-function renderTrickShop(){$('gearSecs').innerHTML=TRICKS.map(t=>{const own=hasTrick(t.id),sel=shopSel===t.id;return`<button class="gear${sel?' sel':''}${own?'':' lock'}" data-id="${t.id}"><span class="sw music">${TRICK_SVG}</span>${t.name}<small>${t.short}</small>${own?'<span class="tagline">Unlocked</span>':`<span class="price">${COIN_SVG}${t.price.toLocaleString()}</span>`}</button>`;}).join('');
-  $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=()=>pickTrick(b.dataset.id));}
+function renderTrickShop(){$('gearSecs').innerHTML=TRICKS.map(t=>{const own=hasTrick(t.id),sel=shopSel===t.id;return`<button class="gear${sel?' sel':''}${own?'':' lock'}" data-id="${t.id}"><span class="sw music">${TRICK_SVG}</span>${t.name}<small>${t.short}</small>${own?'<span class="tagline">Unlocked</span><span class="sellLink">Sell for '+Math.floor(t.price/2).toLocaleString()+'</span>':`<span class="price">${COIN_SVG}${t.price.toLocaleString()}</span>`}</button>`;}).join('');
+  $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=e=>{if(e.target.closest('.sellLink')){const t=TRICKS.find(x=>x.id===b.dataset.id);doSell(t.price,()=>{save.tricks=save.tricks.filter(x=>x!==t.id);},t.name);return;}pickTrick(b.dataset.id);});}
 function pickTrick(id){const t=TRICKS.find(x=>x.id===id);sfx('ui');shopSel=id;previewGear=null;const buy=$('btnBuy');
   if(hasTrick(id)){buy.hidden=true;$('lockLine').textContent=t.name+' is unlocked. '+t.desc;armSell(t.price,()=>{save.tricks=save.tricks.filter(x=>x!==id);},t.name);}
   else{const ok=save.coins>=t.price;buy.hidden=false;buy.disabled=!ok;buy.textContent=ok?`Unlock ${t.name} for ${t.price.toLocaleString()} coins`:`Need ${Math.ceil(t.price-save.coins).toLocaleString()} more coins`;
@@ -3450,7 +3452,8 @@ const MEDALS=[{id:'gold',name:'Gold Medal',val:2500,c:'#f2c14e',c2:'#d99a1e'},{i
 function medalLine(){const m=save.medals,p=[];for(const k of['gold','silver','bronze'])if(m[k])p.push(m[k]+' '+k);return p.length?'Medals: '+p.join(', '):'';}
 let sellArmed=false;
 function armSell(price,fn,name){const b=$('btnSell');sellArmed=false;const half=Math.floor(price/2);if(!price){b.hidden=true;return;}b.hidden=false;b.disabled=false;b.textContent='Sell for '+half.toLocaleString()+' coins';
-  b.onclick=()=>{if(!sellArmed){sellArmed=true;b.textContent='Tap again to sell '+name+' for '+half.toLocaleString();return;}sellArmed=false;fn();save.coins+=half;persist();sfx('collect',4);b.hidden=true;shopSel=null;previewGear=null;$('lockLine').textContent='You sold '+name+' for '+half.toLocaleString()+' coins. You can buy it again any time.';renderShop();updateMenuStats();};}
+  b.onclick=()=>doSell(price,fn,name);}
+function doSell(price,fn,name){const half=Math.floor(price/2);fn();save.coins+=half;persist();sfx('collect',4);$('btnSell').hidden=true;$('btnBuy').hidden=true;shopSel=null;previewGear=null;const msg='Sold '+name+' for '+half.toLocaleString()+' coins!';$('lockLine').textContent=msg+' You can buy it again any time.';toast(msg);renderShop();updateMenuStats();}
 function sellGear(sl,id){save.owned[sl]=save.owned[sl].filter(x=>x!==id);if(save.gear[sl]===id)save.gear[sl]=GEAR[sl][0].id;if(sl==='place'){buildRoute();if(game.state!=='play')resetWorld();}if(sl==='weather')resolveWeather();}
 function renderMedalShop(){const m=save.medals;$('gearSecs').innerHTML=MEDALS.map(x=>`<button class="gear${shopSel===x.id?' sel':''}${m[x.id]?'':' lock'}" data-id="${x.id}"><span class="sw rider" style="background:radial-gradient(circle at 35% 35%,#ffffff,${x.c} 45%,${x.c2});border:2px solid ${x.c2}"></span>${x.name}<small>You have ${m[x.id]}</small><span class="price">${COIN_SVG}${x.val.toLocaleString()}</span></button>`).join('');
   $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=()=>pickMedal(b.dataset.id));}
