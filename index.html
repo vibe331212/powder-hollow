@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793191940">
+<meta name="ph-build" content="1793192680">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -333,6 +333,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <canvas id="previewCanvas" width="400" height="500"></canvas>
         <p class="lockline" id="lockLine">Every point you score earns half as many coins.</p>
         <button class="btn small primary" id="btnBuy" hidden>Buy</button>
+        <button class="btn small" id="btnSell" hidden>Sell</button>
         <button class="btn small" data-back>Done</button>
       </div>
       <div class="stack">
@@ -1156,10 +1157,12 @@ function swatch(sl,g){
 function placeSub(sl,g){if(sl!=='place')return'';const t=g.sub||g.places.map(id=>BIOMES[placeIdx(id)].name).join(' + ');return`<small>${t}</small>`;}
 function renderShop(){
   $('shopCoins').textContent=coinStr();
-  $('shopTabs').innerHTML=SLOTS.concat(['tricks']).map(sl=>`<button class="tab" role="tab" data-tab="${sl}" aria-selected="${sl===shopTab}">${SLOT_NAMES[sl]||'Tricks'}</button>`).join('');
+  $('shopTabs').innerHTML=SLOTS.concat(['tricks','medals']).map(sl=>`<button class="tab" role="tab" data-tab="${sl}" aria-selected="${sl===shopTab}">${SLOT_NAMES[sl]||(sl==='tricks'?'Tricks':'Medals')}</button>`).join('');
   $('shopTabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{sfx('ui');shopTab=b.dataset.tab;shopSel=null;previewGear=null;previewMusic=null;$('btnBuy').hidden=true;$('lockLine').textContent='Every point you score earns half as many coins.';renderShop();});
   const sl=shopTab;
+  if(!shopSel)$('btnSell').hidden=true;
   if(sl==='tricks'){renderTrickShop();return;}
+  if(sl==='medals'){renderMedalShop();return;}
   $('gearSecs').innerHTML=GEAR[sl].map(g=>{const own=owns(sl,g.id),eq=save.gear[sl]===g.id,sel=shopSel===g.id;
     const status=eq?'<span class="tagline">Equipped</span>':own?'<span class="tagline">Owned</span>':`<span class="price">${COIN_SVG}${g.price.toLocaleString()}</span>`;
     return`<button class="gear${eq||sel?' sel':''}${own?'':' lock'}" data-id="${g.id}" aria-pressed="${eq}">${swatch(sl,g)}${g.name}${placeSub(sl,g)}${status}</button>`;}).join('');
@@ -1171,11 +1174,12 @@ function pickItem(sl,id){
   previewMusic=sl==='music'?id:null;
   const buy=$('btnBuy');
   if(owns(sl,id)){
-    save.gear[sl]=id;persist();buy.hidden=true;
+    save.gear[sl]=id;persist();buy.hidden=true;armSell(g.price,()=>sellGear(sl,id),g.name);
     $('lockLine').textContent=g.name+' equipped.'+(sl==='music'?' Now playing.':'');
     if(sl==='place'&&game.state!=='play'){buildRoute();resetWorld();}
     if(sl==='weather'){resolveWeather();$('lockLine').textContent=g.name+' equipped. '+g.desc;}
   }else{
+    $('btnSell').hidden=true;
     const ok=save.coins>=g.price;
     buy.hidden=false;buy.disabled=!ok;buy.textContent=ok?`Buy ${g.name} for ${g.price.toLocaleString()} coins`:`Need ${Math.ceil(g.price-save.coins).toLocaleString()} more coins`;
     buy.onclick=()=>{if(save.coins<g.price)return;save.coins-=g.price;save.owned[sl].push(id);persist();sfx('goal');pickItem(sl,id);$('lockLine').textContent=`You bought ${g.name}. It's equipped.`;};
@@ -2400,9 +2404,9 @@ const TRICK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="#2f7fd6" stroke-wi
 function renderTrickShop(){$('gearSecs').innerHTML=TRICKS.map(t=>{const own=hasTrick(t.id),sel=shopSel===t.id;return`<button class="gear${sel?' sel':''}${own?'':' lock'}" data-id="${t.id}"><span class="sw music">${TRICK_SVG}</span>${t.name}<small>${t.short}</small>${own?'<span class="tagline">Unlocked</span>':`<span class="price">${COIN_SVG}${t.price.toLocaleString()}</span>`}</button>`;}).join('');
   $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=()=>pickTrick(b.dataset.id));}
 function pickTrick(id){const t=TRICKS.find(x=>x.id===id);sfx('ui');shopSel=id;previewGear=null;const buy=$('btnBuy');
-  if(hasTrick(id)){buy.hidden=true;$('lockLine').textContent=t.name+' is unlocked. '+t.desc;}
+  if(hasTrick(id)){buy.hidden=true;$('lockLine').textContent=t.name+' is unlocked. '+t.desc;armSell(t.price,()=>{save.tricks=save.tricks.filter(x=>x!==id);},t.name);}
   else{const ok=save.coins>=t.price;buy.hidden=false;buy.disabled=!ok;buy.textContent=ok?`Unlock ${t.name} for ${t.price.toLocaleString()} coins`:`Need ${Math.ceil(t.price-save.coins).toLocaleString()} more coins`;
-    buy.onclick=()=>{if(save.coins<t.price)return;save.coins-=t.price;save.tricks.push(id);persist();sfx('goal');pickTrick(id);$('lockLine').textContent='You unlocked '+t.name+'! '+t.desc;};$('lockLine').textContent=t.desc;}
+    $('btnSell').hidden=true;buy.onclick=()=>{if(save.coins<t.price)return;save.coins-=t.price;save.tricks.push(id);persist();sfx('goal');pickTrick(id);$('lockLine').textContent='You unlocked '+t.name+'! '+t.desc;};$('lockLine').textContent=t.desc;}
   renderShop();}
 
 // ---- halfpipe
@@ -3420,9 +3424,9 @@ const ce=R=>Math.floor(R.coins).toLocaleString();
 const MODE_RESULT={
   slalom:R=>{const tot=R.gateN||0,time=R.t+2*R.missed,best=!save.slalomBest||time<save.slalomBest;if(best)save.slalomBest=+time.toFixed(2);give(R,R.gates*40+(best?600:0));
     return{title:best?'New slalom record!':R.missed?'Nice run':'Perfect run! Every gate',stats:[['Time',fmtTime(time)],['Best time',fmtTime(save.slalomBest)],['Gates',R.gates+' of '+tot],['Missed gates',R.missed+(R.missed?'  (+'+R.missed*2+'s)':'')],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
-  bigair:R=>{const sc=(R.ba&&R.ba.scores)||[0,0,0],best=Math.max(0,...sc);const medal=best>=3000?'Gold':best>=1500?'Silver':best>=600?'Bronze':'';give(R,{Gold:2500,Silver:1200,Bronze:500}[medal]||100);
+  bigair:R=>{const sc=(R.ba&&R.ba.scores)||[0,0,0],best=Math.max(0,...sc);const medal=best>=3000?'Gold':best>=1500?'Silver':best>=600?'Bronze':'';if(medal){save.medals[medal.toLowerCase()]++;}else give(R,100);
     const rank={Gold:3,Silver:2,Bronze:1};if(medal&&(rank[medal]>(rank[save.bigairMedal]||0)))save.bigairMedal=medal;if(!save.bigairBest||best>save.bigairBest)save.bigairBest=best;
-    return{title:medal?'You won '+medal.toLowerCase()+'!':'Keep practicing',stats:[['Jump 1',(sc[0]||0).toLocaleString()],['Jump 2',(sc[1]||0).toLocaleString()],['Jump 3',(sc[2]||0).toLocaleString()],['Medal',medal||'None (600 for bronze)'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+    return{title:medal?'You won '+medal.toLowerCase()+'!':'Keep practicing',stats:[['Jump 1',(sc[0]||0).toLocaleString()],['Jump 2',(sc[1]||0).toLocaleString()],['Jump 3',(sc[2]||0).toLocaleString()],['Medal',medal?medal+'! Sell it in the Shop for '+MEDALS.find(x=>x.id===medal.toLowerCase()).val.toLocaleString():'None (600 for bronze)'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
   bx:R=>{const pl=R.place||1+(R.bots||[]).filter(b=>b.fin!=null).length;give(R,[1500,800,400,150][pl-1]||150);if(pl===1)save.bxWins=(save.bxWins||0)+1;
     return{title:pl===1?'You won the boardercross!':ordinal(pl)+' place',stats:[['Place',ordinal(pl)+' of 4'],['Time',fmtTime(R.t)],['Total wins',(save.bxWins||0)],['Best trick',R.bestTrick||'Just racing'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
   night:R=>{give(R,500);if(!save.nightBest||R.flakes>save.nightBest)save.nightBest=R.flakes;
@@ -3433,10 +3437,28 @@ const MODE_RESULT={
     return{title:all?'You saved every baby!':n?'The babies are safe at home':'Nobody rescued this time',stats:[['Babies rescued',n+' of '+tot],['Got scared',R.lost||0],['Rescue reward',(n*300+(all?1000:0)).toLocaleString()+' coins'],['All-time rescues',save.rescueTotal],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};}};
 // ---- menu tiles
 const ACTS=[{m:'aval',name:'Avalanche Escape',rec:()=>save.avBest?'Best '+save.avBest.toLocaleString()+' m':'Outrun the snow'},{m:'slalom',name:'Slalom',rec:()=>save.slalomBest?'Best '+fmtTime(save.slalomBest):'Race through gates'},
-  {m:'bigair',name:'Big Air Contest',rec:()=>save.bigairMedal?'Best medal: '+save.bigairMedal:'3 jumps, win gold'},{m:'bx',name:'Boardercross',rec:()=>save.bxWins?save.bxWins+' win'+(save.bxWins>1?'s':''):'Race 3 riders'},
-  {m:'night',name:'Night Ride',rec:()=>save.nightBest?'Best '+save.nightBest+' flakes':'Glowing flakes x2'},{m:'back',name:'Backcountry',rec:()=>save.backBest?'Best '+save.backBest+' chests':'Find hidden chests'},
+  {m:'bigair',name:'Big Air Contest',rec:()=>medalLine()||'3 jumps, win a medal'},{m:'bx',name:'Boardercross',rec:()=>save.bxWins?save.bxWins+' win'+(save.bxWins>1?'s':''):'Race 3 riders'},
   {m:'rescue',name:'Animal Rescue',rec:()=>save.rescueTotal?save.rescueTotal+' babies saved':'Save lost babies'}];
 function renderActs(){const g=$('actGrid');if(!g)return;g.innerHTML=ACTS.map(a=>`<button class="actTile" data-m="${a.m}">${a.name}<small>${a.rec()}</small></button>`).join('');g.querySelectorAll('.actTile').forEach(b=>b.onclick=()=>{sfx('ui');startRun(b.dataset.m);});}
+renderSide();
+
+
+/* ---------- Selling: gear and tricks for half price, medals for coins ---------- */
+if(!save.medals||typeof save.medals!=='object')save.medals={gold:0,silver:0,bronze:0};
+{const m0={Gold:'gold',Silver:'silver',Bronze:'bronze'}[save.bigairMedal];for(const k of['gold','silver','bronze'])save.medals[k]=save.medals[k]|0;}
+const MEDALS=[{id:'gold',name:'Gold Medal',val:2500,c:'#f2c14e',c2:'#d99a1e'},{id:'silver',name:'Silver Medal',val:1200,c:'#d6dde8',c2:'#9aa6b8'},{id:'bronze',name:'Bronze Medal',val:500,c:'#d9925a',c2:'#a8643a'}];
+function medalLine(){const m=save.medals,p=[];for(const k of['gold','silver','bronze'])if(m[k])p.push(m[k]+' '+k);return p.length?'Medals: '+p.join(', '):'';}
+let sellArmed=false;
+function armSell(price,fn,name){const b=$('btnSell');sellArmed=false;const half=Math.floor(price/2);if(!price){b.hidden=true;return;}b.hidden=false;b.disabled=false;b.textContent='Sell for '+half.toLocaleString()+' coins';
+  b.onclick=()=>{if(!sellArmed){sellArmed=true;b.textContent='Tap again to sell '+name+' for '+half.toLocaleString();return;}sellArmed=false;fn();save.coins+=half;persist();sfx('collect',4);b.hidden=true;shopSel=null;previewGear=null;$('lockLine').textContent='You sold '+name+' for '+half.toLocaleString()+' coins. You can buy it again any time.';renderShop();updateMenuStats();};}
+function sellGear(sl,id){save.owned[sl]=save.owned[sl].filter(x=>x!==id);if(save.gear[sl]===id)save.gear[sl]=GEAR[sl][0].id;if(sl==='place'){buildRoute();if(game.state!=='play')resetWorld();}if(sl==='weather')resolveWeather();}
+function renderMedalShop(){const m=save.medals;$('gearSecs').innerHTML=MEDALS.map(x=>`<button class="gear${shopSel===x.id?' sel':''}${m[x.id]?'':' lock'}" data-id="${x.id}"><span class="sw rider" style="background:radial-gradient(circle at 35% 35%,#ffffff,${x.c} 45%,${x.c2});border:2px solid ${x.c2}"></span>${x.name}<small>You have ${m[x.id]}</small><span class="price">${COIN_SVG}${x.val.toLocaleString()}</span></button>`).join('');
+  $('gearSecs').querySelectorAll('.gear').forEach(b=>b.onclick=()=>pickMedal(b.dataset.id));}
+function pickMedal(id){const x=MEDALS.find(q=>q.id===id);sfx('ui');shopSel=id;$('btnBuy').hidden=true;const b=$('btnSell'),n=save.medals[id];
+  if(!n){b.hidden=true;$('lockLine').textContent='Win a '+x.name.toLowerCase()+' in the Big Air Contest, then sell it here for '+x.val.toLocaleString()+' coins.';renderShop();return;}
+  b.hidden=false;b.disabled=false;b.textContent='Sell 1 '+x.name.toLowerCase()+' for '+x.val.toLocaleString()+' coins';$('lockLine').textContent='You have '+n+' '+x.name.toLowerCase()+(n>1?'s':'')+'. Each one sells for '+x.val.toLocaleString()+' coins.';
+  b.onclick=()=>{if(!save.medals[id])return;save.medals[id]--;save.coins+=x.val;persist();sfx('goal');renderShop();pickMedal(id);$('lockLine').textContent='Sold a '+x.name.toLowerCase()+' for '+x.val.toLocaleString()+' coins! '+(save.medals[id]?'You have '+save.medals[id]+' left.':'That was your last one.');updateMenuStats();};
+  renderShop();}
 renderSide();
 
 if(save.village){save.village=false;persist();}
