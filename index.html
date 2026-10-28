@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f7fd6">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Powder Hollow">
+<meta name="ph-build" content="1793191940">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,6 +63,10 @@ h3{font-size:18px}
 .sideCard .goals{margin:0}
 .sideRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--ink-soft)}
 .sideRow .btn{flex:0 0 auto;font-size:17px;padding:9px 16px}
+.actGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.actTile{text-align:left;background:var(--snow);border:2px solid var(--line);border-radius:12px;padding:7px 10px;font-family:var(--f-display);font-size:15px;color:var(--deep);cursor:pointer;transition:border-color .15s,transform .15s}
+.actTile:hover{border-color:#2f7fd6;transform:translateY(-1px)}
+.actTile small{display:block;font-family:var(--f-body);font-size:11px;font-weight:700;color:var(--ink-soft)}
 .statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .statgrid div{background:var(--snow);border:1px solid var(--line);border-radius:12px;padding:7px 9px;font-size:11px;font-weight:700;color:var(--ink-soft)}
 .statgrid b{display:block;font-family:var(--f-display);font-size:17px;color:var(--deep)}
@@ -289,9 +302,8 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <div class="sideRow"><span id="dPrize"></span><button class="btn small primary" id="btnDaily">Play</button></div>
       </div>
       <div class="sideCard">
-        <div class="card-head"><div><p class="eyebrow">Survival</p><h3>Avalanche Escape</h3></div></div>
-        <p id="avInfo">Outrun the avalanche to the bottom of the mountain.</p>
-        <div class="sideRow"><span id="avPrize">Escape bonus 2,000 coins</span><button class="btn small" id="btnAval">Run for it</button></div>
+        <div class="card-head"><div><p class="eyebrow">Activities</p><h3>More ways to ride</h3></div></div>
+        <div class="actGrid" id="actGrid"></div>
       </div>
       <div class="sideCard">
         <p class="eyebrow">Your rider</p>
@@ -701,7 +713,7 @@ const TRACK=340, BIOME_LEN=6000, RUN_LEN=BIOME_LEN*4, CH=640, GRAV=1000, SPIN=TA
 const BIOMES=[{id:'forest',name:'Pine Forest',custom:true,ground:'#f3f8ff',rail:'log'},{id:'falls',name:'Frozen Falls',custom:true,ground:'#eef5fd',walls:'cliff',ice:true,rail:'log'},{id:'cabins',name:'Cabin Hollow',custom:true,ground:'#f6faff',rail:'fence'},{id:'caves',name:'Crystal Caves',custom:true,ground:'#d5e3f4',walls:'cave',dark:.62,darkCol:'#0c1e46',rail:'ice'}];
 const FREE_LEN=BIOME_LEN*6;
 const RACE_LEN=BIOME_LEN*4;
-const runLen=()=>game.mode==='challenge'?RUN_LEN:game.mode==='race'?RACE_LEN:game.mode==='aval'?Math.round(FREE_LEN*.6):game.mode==='pipe'?1e9:Math.round(FREE_LEN*((run&&run.lenMul)||1));
+const runLen=()=>game.mode==='challenge'?RUN_LEN:game.mode==='race'?RACE_LEN:MODE_LEN[game.mode]?MODE_LEN[game.mode]():Math.round(FREE_LEN*((run&&run.lenMul)||1));
 let route=[0,1,2,3];
 const placeIdx=id=>BIOMES.findIndex(b=>b.id===id);
 function buildRoute(){
@@ -753,6 +765,7 @@ function genChunkInner(){
   }
   if(run&&y0<=runLen()&&y1>runLen()){const FL=runLen();for(const s of[-1,1])for(let i=0;i<8;i++)objs.push({t:'animal',kind:pick(['fox','rabbit','owl','penguin']),x:s*(TRACK+rand(10,60)),y:FL-260+i*70+rand(-10,10),side:s,cheerT:0,bubT:0,bubble:'',ph:rand(0,TAU),greeted:true});}
   if(run&&y0>runLen()-200){if(nextRow<y1)nextRow=y1;return;}
+  if(typeof modeGen==='function'&&modeGen(y0,y1))return;
   if(game.mode==='pipe'){while(nextRow<y1){const sd=Math.random()<.5?-1:1;for(let i=0;i<4;i++)flake(sd*(PIPE_LIP-40-i*18),nextRow+i*46,150+i*28);nextRow+=rand(420,620);}return;}
   while(nextRow<y1){
     const ry=nextRow;
@@ -944,7 +957,7 @@ function comboHit(){game.combo.n++;if(run)run.maxChain=Math.max(run.maxChain||0,
 function comboDrop(){game.combo.n=0;game.combo.t=0;game.combo.pot=0;game.combo.kinds=new Set();}
 function comboAdd(pts,kinds){game.combo.pot=(game.combo.pot||0)+pts;if(!game.combo.kinds)game.combo.kinds=new Set();for(const k of kinds)if(k)game.combo.kinds.add(k);}
 function comboBank(){const n=game.combo.n,st=game.combo.kinds?game.combo.kinds.size:1;if(n>=2&&run){const bonus=Math.round((game.combo.pot||0)*(.1*n+.25*Math.max(0,st-1))/5)*5;const cn=addPoints(bonus);popup(n+'-trick combo banked!','+'+bonus.toLocaleString()+' style points   '+coinTxt(cn));sfx('goal');}comboDrop();}
-function addPoints(pts){if(!run)return 0;if(run.ch||run.mode==='pipe'||run.mode==='aval')run.score+=pts;const c=pts/2;run.coins+=c;save.coins+=c;return c;}
+function addPoints(pts){if(!run)return 0;if(run.ch||!['free','race'].includes(run.mode))run.score+=pts;const c=pts/2;run.coins+=c;save.coins+=c;return c;}
 const coinTxt=c=>'+'+(Number.isInteger(c)?c:c.toFixed(1))+' coins';
 function trickLanded(deg,grab,flips,sketchy){
   const names=[];let pts=0;
@@ -1017,7 +1030,7 @@ function interact(c){
     if(o.y>y1||o.y+(o.len||o.h||0)<y0)continue;
     switch(o.t){
       case'flake':if(!o.got){const dx=o.x-P.x,dy=o.y-P.y;if(dx*dx+dy*dy<900&&Math.abs(P.z-o.fz)<38)collect(o);}break;
-      case'ramp':if(!P.air&&!P.grind&&P.state==='ride'&&Math.abs(P.x-o.x)<o.w/2){if(P.y>=o.y&&P.y<o.y+o.h)P.z=(P.y-o.y)/o.h*o.rh;if(P.prevY<o.y+o.h&&P.y>=o.y+o.h){P.z=o.rh;jump(Math.min(780,(o.big?370:300)+P.v*.6));P.fromRamp=true;P.blockUp=!!c.up;P.blockDown=!!c.down;}}break;
+      case'ramp':if(!P.air&&!P.grind&&P.state==='ride'&&Math.abs(P.x-o.x)<o.w/2){if(P.y>=o.y&&P.y<o.y+o.h)P.z=(P.y-o.y)/o.h*o.rh;if(P.prevY<o.y+o.h&&P.y>=o.y+o.h){P.z=o.rh;jump(o.giant?1080:Math.min(780,(o.big?370:300)+P.v*.6));P.fromRamp=true;P.blockUp=!!c.up;P.blockDown=!!c.down;}}break;
       case'boost':if(!P.air&&P.state==='ride'&&Math.abs(P.x-o.x)<o.w/2+6&&P.prevY<o.y+o.h*.5&&P.y>=o.y+o.h*.5){P.v=Math.min(980,P.v+300);P.boostT=1.3;if(run)run.boosts++;sfx('boost');checkGoals();}break;
       case'rail':if(!P.grind&&P.state==='ride'&&Math.abs(P.x-o.x)<20&&P.y>=o.y-4&&P.y<o.y+o.len-30){if(!P.air)startGrind(o,false);else if(P.vz<0&&P.z<o.h+22&&P.z>o.h-12)startGrind(o,true);}break;
       case'ice':if(!P.air){const dx=(P.x-o.x)/o.rx,dy=(P.y-o.y)/o.ry;if(dx*dx+dy*dy<1)icy=true;}break;
@@ -1030,7 +1043,7 @@ function interact(c){
 }
 function collect(o){
   o.got=true;game.flakeChain=game.flakeChainT>0?game.flakeChain+1:0;game.flakeChainT=1.1;
-  if(run){run.flakes++;save.flakes++;addPoints(25);checkGoals();}
+  if(run){run.flakes++;save.flakes++;addPoints(run.mode==='night'?50:25);checkGoals();}
   sfx('collect',game.flakeChain);
   for(let i=0;i<7;i++)addPart({k:'spark',x:o.x,y:o.y,z:o.fz+10,vx:rand(-90,90),vy:rand(-90,90),vz:rand(-40,90),g:0,drag:3,life:.5,max:.5,r:rand(2,4)});
 }
@@ -1073,7 +1086,7 @@ function startRun(mode,ch){
   else{game.seedRng=null;buildRoute();resetWorld();comboDrop();resolveWeather();}
   showScreen(null);
   $('hud').hidden=false;$('touch').hidden=!isTouch;
-  $('hudMode').textContent=mode==='free'?'Free Ride':mode==='aval'?'Avalanche Escape':mode==='pipe'?'Halfpipe':mode==='race'?(ch?ch.name+' race ':'Race ')+RC.code:ch.name;
+  $('hudMode').textContent=mode==='free'?'Free Ride':MODE_NAMES[mode]?MODE_NAMES[mode]:mode==='race'?(ch?ch.name+' race ':'Race ')+RC.code:ch.name;
   $('hudScore').hidden=mode==='free';$('hudProgress').hidden=false;$('hudGoals').hidden=!ch;
   $('btnRestart').hidden=mode==='race';
   renderGoals();
@@ -2436,7 +2449,7 @@ const doneToday=()=>save.dailyDone===dayKey(new Date());
 
 // ---- wrappers
 const _startRun2=startRun;
-startRun=function(m,ch){_startRun2(m,ch);game.av=null;
+startRun=function(m,ch){if(m!=='race')RC.ghosts={};_startRun2(m,ch);game.av=null;modeStart(m);
   if(m==='aval'){game.av={y:-900,v:330};run.avT=0;setTimeout(()=>toast('Run! The avalanche is coming!'),300);}
   if(m==='pipe'){run.pipeT=75;P.a=.55;P.v=380;setTimeout(()=>toast('Halfpipe! Ride up the walls to launch, then spin and flip'),300);}
   if(ch&&ch.daily)setTimeout(()=>toast(doneToday()?'Daily Challenge (prize already won today)':'Daily Challenge: finish all 3 goals for '+dailyPrize().toLocaleString()+' coins'),300);};
@@ -2444,11 +2457,13 @@ const _update2=update;
 update=function(dt){_update2(dt);if(game.state!=='play'||!run)return;
   if(run.mode==='pipe'){pipeTick(dt,keys);if(!run.finished){run.pipeT-=dt;if(run.pipeT<=0){run.finished=true;game.endT=0;sfx('goal');toast("Time's up!");game.fwT=2.5;game.fwNext=0;cheer();}}
     $('hudScore').textContent=run.score.toLocaleString();$('hudFlakes').textContent='Time '+Math.max(0,Math.ceil(run.pipeT))+'s   '+Math.floor(run.coins).toLocaleString()+' coins';$('hudBar').style.width=clamp((75-run.pipeT)/75*100,0,100)+'%';}
-  if(run.mode==='aval')avTick(dt);};
+  if(run.mode==='aval')avTick(dt);
+  if(run)modeTick(dt);};
 const _draw2=draw;
-draw=function(){_draw2();if(game.state==='play'||game.state==='paused')drawAval();};
+draw=function(){_draw2();if(game.state==='play'||game.state==='paused'){drawAval();modeDrawAfter();}};
 const _finishRun2=finishRun;
 finishRun=function(){const R=run;if(!R)return;
+  if(MODE_RESULT[R.mode]){showModeResults(R,MODE_RESULT[R.mode](R));return;}
   if(R.mode==='aval'||R.mode==='pipe'){let title,stats;const bt=R.bestTrick||'None yet',ce=()=>Math.floor(R.coins).toLocaleString();
     if(R.mode==='aval'){const dist=Math.round(P.y/10),esc=!R.caught;if(esc){save.coins+=2000;R.coins+=2000;}if(!save.avBest||dist>save.avBest)save.avBest=dist;if(esc)save.avEsc=(save.avEsc||0)+1;
       title=esc?'You escaped the avalanche!':'The avalanche caught you';stats=[['Distance',dist.toLocaleString()+' m'],['Best distance',save.avBest.toLocaleString()+' m'],['Escape bonus',esc?'+2,000 coins':'None this time'],['Coins earned',ce()],['Best trick',bt],['Coins in wallet',coinStr()]];}
@@ -2470,7 +2485,7 @@ function renderSide(){if(!$('menuSide'))return;const ch=dailyCh(),dn=doneToday()
   $('dStreak').textContent='Streak '+(dn?(save.dailyStreak||1):Math.max(0,dailyStreakNext()-1));
   $('dPrize').textContent=dn?'Done today! New one tomorrow':'Prize '+dailyPrize().toLocaleString()+' coins';
   $('btnDaily').textContent=dn?'Play again':'Play';
-  $('avInfo').textContent=save.avBest?'Best run: '+save.avBest.toLocaleString()+' m. Escaped '+(save.avEsc||0)+' time'+((save.avEsc||0)===1?'':'s')+'. Can you beat it?':'Outrun the avalanche to the bottom of the mountain. Do not wipe out!';
+  try{renderActs();}catch(e){}//save.avBest?'Best run: '+save.avBest.toLocaleString()+' m. Escaped '+(save.avEsc||0)+' time'+((save.avEsc||0)===1?'':'s')+'. Can you beat it?':'Outrun the avalanche to the bottom of the mountain. Do not wipe out!';
   const st=[['Coins',coinStr()],['Stars',totalStars()+'/45'],['Tricks',save.tricks.length+'/'+TRICKS.length],['Snowflakes',(save.flakes||0).toLocaleString()],['Best escape',save.avBest?save.avBest.toLocaleString()+' m':'None'],['Daily streak',String(dn?(save.dailyStreak||1):Math.max(0,dailyStreakNext()-1))]];
   $('riderStats').innerHTML=st.map(([k,v])=>`<div>${k}<b>${v}</b></div>`).join('');
   const nt=TRICKS.find(t=>!hasTrick(t.id));$('nextTrick').textContent=nt?'Next trick: '+nt.name+' ('+nt.price.toLocaleString()+')':'You unlocked every trick!';
@@ -2479,7 +2494,6 @@ updateMenuStats=function(){_ums();renderSide();};
 $('tipNext').onclick=()=>{sfx('ui');tipI++;renderSide();};
 $('btnTrickShop').onclick=()=>{sfx('ui');shopTab='tricks';shopSel=null;$('btnLocker').click();shopTab='tricks';renderShop();};
 $('btnDaily').onclick=()=>{sfx('ui');startRun('challenge',dailyCh());};
-$('btnAval').onclick=()=>{sfx('ui');startRun('aval');};
 updateMenuStats();
 
 buildShelves();
@@ -3153,7 +3167,7 @@ function drawBack(env,k){
   drawWalls3D();
   const list=[];
   for(const o of objs){const ye=o.y+(o.len||o.h||0);if(ye<BC.y+20||o.y>BC.y+2700)continue;if(o.t==='flake'&&o.got)continue;list.push(o);}
-  if(RC.inRace&&game.state==='play')for(const id in RC.ghosts){const g=RC.ghosts[id];list.push({t:'ghost',g,x:g.rx,y:g.ry});}
+  if((RC.inRace||game.mode==='bx')&&game.state==='play')for(const id in RC.ghosts){const g=RC.ghosts[id];list.push({t:'ghost',g,x:g.rx,y:g.ry});}
   const L=run?runLen():Infinity;for(let i=Math.max(0,Math.floor(BC.y/BIOME_LEN));i<=Math.floor((BC.y+2700)/BIOME_LEN);i++){const y=i*BIOME_LEN;if(i>0&&y>BC.y+30&&y<L)list.push({t:'arch',i,x:0,y});}
   if(run&&L>BC.y+30&&L<BC.y+2700)list.push({t:'finish',x:0,y:L});
   list.push({t:'player',x:P.x,y:P.y+.01});
@@ -3205,13 +3219,14 @@ function draw(){
   drawDecals(v);
   drawEdges(v,false);
   if(game.mode==='pipe')drawPipe(v);
+  if(typeof modeDrawTop==='function')modeDrawTop(v);
   ctx.lineCap='round';ctx.lineJoin='round';
   const tr=P.trail,TRL=gearById('trail',save.gear.trail),offs=TRL.rainbow?[-6,-2,2,6]:[-5,5];for(let oi=0;oi<offs.length;oi++){const off=offs[oi];ctx.strokeStyle=TRL.rainbow?TRL.rainbow[oi]:TRL.col;ctx.lineWidth=2.5;ctx.beginPath();let pen=false;for(const p of tr){if(!p){pen=false;continue;}const px=p.x+Math.cos(p.a)*off,py=p.y-Math.sin(p.a)*off;if(pen)ctx.lineTo(px,py);else{ctx.moveTo(px,py);pen=true;}}if(pen&&P.state==='ride'&&!P.air&&!P.grind)ctx.lineTo(P.x+Math.cos(P.a)*off,P.y-Math.sin(P.a)*off);ctx.stroke();}
   const vis=[],bubbles=[];
   for(const o of objs){if(o.y+(o.len||0)+60<v.y0||o.y-260>v.y1)continue;if(o.x<v.x0-120||o.x>v.x1+120)continue;
     switch(o.t){case'ice':drawIce(o);break;case'boost':drawBoost(o);break;case'ramp':drawRamp(o);break;case'fall':drawFall(o);break;case'rail':drawRail(o);break;case'flake':break;default:vis.push(o);}}
   drawFinish();
-  if(RC.inRace&&game.state==='play')for(const id in RC.ghosts){const g=RC.ghosts[id];if(g.ry>v.y0-100&&g.ry<v.y1+100)vis.push({t:'ghost',g,y:g.ry});}
+  if((RC.inRace||game.mode==='bx')&&game.state==='play')for(const id in RC.ghosts){const g=RC.ghosts[id];if(g.ry>v.y0-100&&g.ry<v.y1+100)vis.push({t:'ghost',g,y:g.ry});}
   if(!(P.state==='ride'&&(P.air||P.grind)))vis.push({t:'player',y:P.y});
   vis.sort((a,b)=>a.y-b.y);
   for(const o of vis){switch(o.t){case'tree':drawTree(o);break;case'rock':drawRock(o);break;case'snowman':drawSnowman(o);break;case'pillar':drawPillar(o);break;case'crystal':drawCrystal(o);break;case'cabin':drawCabin(o);break;case'animal':drawAnimal(o,bubbles);break;case'bank':drawBank(o);break;case'player':drawPlayer();break;case'ghost':drawGhost(o.g,bubbles);break;default:if(DECOR[o.t])DECOR[o.t].draw(o);}}
@@ -3322,10 +3337,152 @@ function sfx(n,arg){
 
 /* ---------- Boot ---------- */
 resolveWeather();buildRoute();resize();resetWorld();updateMenuStats();initAccounts();
+
+/* ---------- Activities: slalom, big air, boardercross, night ride, backcountry, animal rescue ---------- */
+const MODE_NAMES={aval:'Avalanche Escape',pipe:'Halfpipe',slalom:'Slalom',bigair:'Big Air Contest',bx:'Boardercross',night:'Night Ride',back:'Backcountry Powder',rescue:'Animal Rescue'};
+const MODE_LEN={aval:()=>Math.round(FREE_LEN*.6),pipe:()=>1e9,slalom:()=>Math.round(FREE_LEN*.35),bigair:()=>1e9,bx:()=>Math.round(RACE_LEN*.6),night:()=>Math.round(FREE_LEN*.6),back:()=>Math.round(FREE_LEN*.6),rescue:()=>Math.round(FREE_LEN*.5)};
+const GATE_W=130;
+function modeGen(y0,y1){const m=game.mode;if(!run)return false;
+  if(m==='slalom'){while(nextRow<y1){const ry=nextRow;if(ry<700){placeFlakes(0,ry+200,'line');nextRow=900;continue;}run.gateN=(run.gateN||0)+1;const sd=run.gateN%2?1:-1;const gx=sd*rand(80,170);objs.push({t:'gate',x:gx,y:ry,col:sd>0?'#e2486b':'#3d8ee0',state:0});if(Math.random()<.5)for(let i=0;i<3;i++)flake(gx*.4,ry+140+i*45,0);nextRow+=rand(400,470);}return true;}
+  if(m==='bigair'){if(y0===0){objs.push({t:'boost',x:0,y:420,w:70,h:96},{t:'boost',x:0,y:880,w:70,h:96},{t:'ramp',x:0,y:1400,w:170,h:120,rh:42,big:true,giant:true});
+      for(let i=1;i<=10;i++){const t=i*.2,fz=42+1080*t-.5*GRAV*t*t;if(fz>12)flake(0,1520+650*t,fz);}
+      for(const sd of[-1,1])for(let i=0;i<10;i++)objs.push({t:'animal',kind:pick(['fox','rabbit','owl','penguin']),x:sd*(TRACK+rand(10,60)),y:1150+i*90,side:sd,cheerT:0,bubT:0,bubble:'',ph:rand(0,TAU),greeted:true});}
+    nextRow=1e9;return true;}
+  if(m==='back'){if(run.nextChest==null){run.nextChest=1400;run.chestsTotal=0;}
+    while(nextRow<y1){const ry=nextRow;if(ry<700){placeFlakes(0,ry+200,'line');nextRow=900;continue;}
+      if(ry>=run.nextChest&&ry<runLen()-600){const cx=rand(-TRACK+80,TRACK-80);objs.push({t:'chest',x:cx,y:ry+60,got:false});run.chestsTotal++;run.nextChest+=rand(1500,2100);for(const sd of[-1,1])objs.push({t:'tree',x:clamp(cx+sd*rand(75,140),-TRACK+40,TRACK-40),y:ry+rand(0,110),s:1,r:12,ht:80});nextRow+=320;continue;}
+      const r=Math.random();let sp;if(r<.42){sp=placeObstacles(ry,'forest',null);if(Math.random()<.5)placeObstacles(ry+110,'forest',null);sp+=60;}else if(r<.6)sp=placeRamp(rand(-TRACK+90,TRACK-90),ry);else if(r<.72)sp=placeBoost(rand(-200,200),ry);else sp=placeFlakes(rand(-TRACK+90,TRACK-90),ry);nextRow+=sp;}return true;}
+  if(m==='rescue'){if(run.nextBaby==null){run.nextBaby=1500;run.babyTotal=0;}if(y1>run.nextBaby&&run.nextBaby<runLen()-800){objs.push({t:'baby',kind:pick(['fox','rabbit','penguin','owl']),x:rand(-TRACK+80,TRACK-80),y:run.nextBaby,side:1,ph:rand(0,TAU),got:false,cheerT:0,bubT:0});run.babyTotal++;run.nextBaby+=rand(1700,2300);}return false;}
+  return false;}
+DECOR.gate={r:0,ht:0,draw(o){for(const sx of[-GATE_W/2,GATE_W/2]){const x=o.x+sx,c=o.state===1?'#4fd87a':o.state===2?'#9aa6b8':o.col,dir=sx<0?1:-1;ell(x+3,o.y+2,6,2.5,SHADOW);ctx.fillStyle='#ffffff';ctx.fillRect(x-2,o.y-66,4,66);ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(x,o.y-64);ctx.lineTo(x+dir*28,o.y-52+Math.sin(game.t*6+o.y)*2);ctx.lineTo(x,o.y-40);ctx.closePath();ctx.fill();ell(x,o.y-67,3,3,c);}
+  ctx.strokeStyle=o.state===2?'rgba(150,160,180,.5)':'rgba(47,127,214,.35)';ctx.setLineDash([6,6]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(o.x-GATE_W/2,o.y);ctx.lineTo(o.x+GATE_W/2,o.y);ctx.stroke();ctx.setLineDash([]);}};
+DECOR.chest={r:0,ht:0,draw(o){const x=o.x,y=o.y;ell(x+3,y+3,22,6,SHADOW);ctx.fillStyle='#8a5a3a';rrect(x-18,y-24,36,24,4);ctx.fill();ctx.fillStyle='#f2b630';ctx.fillRect(x-18,y-16,36,3);ctx.fillRect(x-3,y-24,6,24);
+  if(o.got){ctx.fillStyle='#6d4d39';ctx.beginPath();ctx.moveTo(x-18,y-24);ctx.lineTo(x-14,y-40);ctx.lineTo(x+18,y-36);ctx.lineTo(x+18,y-24);ctx.closePath();ctx.fill();}
+  else{ctx.fillStyle='#a06a42';rrect(x-19,y-34,38,13,6);ctx.fill();ctx.fillStyle='#f2b630';ctx.fillRect(x-19,y-26,38,3);ell(x,y-22,3.5,3.5,'#ffd76a');const tw=Math.pow(Math.max(0,Math.sin(game.t*3+x)),6);star4(x+12,y-38,4+tw*4,.4+tw*.6,'#fff6c8');}
+  ell(x-10,y-34,8,3,'#ffffff');}};
+DECOR.baby={r:0,ht:0,draw(o){if(o.got)return;ctx.save();ctx.translate(o.x,o.y);ctx.scale(.72,.72);drawAnimal(Object.assign({},o,{x:0,y:0,side:1,cheerT:Math.sin(game.t*3+o.ph)>.6?.5:0,bubT:0}),[]);ctx.restore();
+  if(Math.sin(game.t*2+o.ph)>0)drawBubble({x:o.x,y:o.y-46,text:'Help!',a:1});}};
+// ---- start, tick, draw
+function modeStart(m){if(!run)return;
+  if(m==='slalom'){run.t=0;run.gates=0;run.missed=0;P.v=320;setTimeout(()=>toast('Slalom! Ride between each pair of flags. Missing one adds 2 seconds.'),300);}
+  if(m==='bigair')setTimeout(()=>toast('Big Air Contest! 3 jumps. Ride straight at the giant ramp, then spin, flip and grab.'),300);
+  if(m==='bx'){bxInit();setTimeout(()=>toast('Boardercross! Beat Maple, Juniper and Flurry to the bottom.'),300);}
+  if(m==='night')setTimeout(()=>toast('Night Ride! Glowing snowflakes are worth double tonight.'),300);
+  if(m==='back')setTimeout(()=>toast('Backcountry! Deep powder and treasure chests hidden in the trees.'),300);
+  if(m==='rescue'){run.fol=[];setTimeout(()=>toast('Animal Rescue! Ride next to lost baby animals to save them. Do not wipe out!'),300);}}
+const BX_NAMES=['Maple','Juniper','Flurry'];
+function bxInit(){RC.ghosts={};run.t=0;run.bots=BX_NAMES.map((n,i)=>{const gear={};for(const sl of['rider','jacket','hat','goggles','scarf','board'])gear[sl]=pick(GEAR[sl]).id;return{id:'bot'+i,name:n,skill:i*.45+rand(0,.5),ph:rand(0,TAU),y:-30-i*12,v:240,off:0,stT:0,fin:null,gear};});}
+function bxTick(dt){const L=runLen();if(!run.bots)return;
+  for(const b of run.bots){if(b.fin==null){let vt=480+b.skill*60+60*Math.sin(game.t*.7+b.ph);const d=P.y-b.y;if(d>450)vt+=170;if(d<-650)vt-=150;
+      if(b.stT>0){b.stT-=dt;vt*=.3;}else if(Math.random()<dt*.05)b.stT=1.3;b.v+=clamp(vt-b.v,-300*dt,260*dt);b.y+=b.v*dt;if(b.y>=L)b.fin=run.t;}else b.y+=200*dt;
+    b.off*=1-Math.min(1,dt*2);const bx=Math.sin(b.y/650+b.ph)*TRACK*.55+b.off;
+    if(!P.air&&P.state==='ride'&&Math.abs(P.x-bx)<26&&Math.abs(P.y-b.y)<30){const sg=Math.sign(P.x-bx)||1;P.x+=sg*6;b.off-=sg*22;}
+    const g=RC.ghosts[b.id]||(RC.ghosts[b.id]={rx:bx,ry:b.y,rz:0});Object.assign(g,{x:bx,y:b.y,z:0,a:Math.atan(Math.cos(b.y/650+b.ph)*TRACK*.55/650),name:b.name,gear:b.gear,st:b.stT>0?'wipe':'ride',seen:performance.now(),spin:0,flip:0,fd:1});}
+  if(!run.finished)run.t+=1/60*0+dt;if(run.finished&&run.place==null)run.place=1+run.bots.filter(b=>b.fin!=null).length;
+  const ahead=run.bots.filter(b=>b.y>P.y||b.fin!=null).length;
+  $('hudScore').textContent=run.place?ordinal(run.place)+' place!':'Place '+(1+ahead)+' of 4';$('hudFlakes').textContent=fmtTime(run.t)+'   '+Math.floor(run.coins).toLocaleString()+' coins';}
+function bigAirTick(dt){const B=run.ba||(run.ba={phase:'run',scores:[],t:0});if(run.finished)return;
+  if(B.phase==='run'){if(P.air&&P.fromRamp){B.phase='air';B.s0=run.score;}else if(P.y>1950&&!P.air){B.phase='done';B.res=0;B.t=0;popup('Missed the jump!','Ride straight at the ramp');}}
+  else if(B.phase==='air'){if(P.state==='wipe'){B.phase='done';B.res=0;B.t=0;}else if(!P.air&&!P.grind){B.phase='done';B.t=0;B.res=Math.max(0,run.score-B.s0);const j=[0,1,2].map(()=>clamp(Math.round((B.res/420+rand(-.6,.6))*2)/2,1,10));const n=B.scores.length+1;setTimeout(()=>popup('Jump '+n+': '+B.res.toLocaleString()+' points','Judges   '+j.join('   ')),450);}}
+  else if(B.phase==='done'){B.t+=dt;if(B.t>2.6){B.scores.push(B.res||0);if(B.scores.length>=3){run.finished=true;game.endT=2.4;sfx('goal');}else{resetWorld();comboDrop();B.phase='run';toast('Jump '+(B.scores.length+1)+' of 3. Go big!');}}}
+  $('hudScore').textContent='Jump '+Math.min(3,B.scores.length+1)+' of 3';$('hudFlakes').textContent='Best '+Math.max(0,...B.scores).toLocaleString()+' points';}
+function modeTick(dt){const m=run.mode;
+  if(m==='slalom'){if(!run.finished)run.t+=dt;for(const o of objs){if(o.t!=='gate'||o.state)continue;if(P.prevY<o.y&&P.y>=o.y){if(Math.abs(P.x-o.x)<GATE_W/2){o.state=1;run.gates++;sfx('collect',run.gates%8);}else{o.state=2;run.missed++;sfx('poof');popup('Missed a gate','+2 seconds');}}}
+    $('hudScore').textContent=fmtTime(run.t+2*run.missed);$('hudFlakes').textContent='Gates '+run.gates+'   missed '+run.missed;}
+  if(m==='bigair')bigAirTick(dt);
+  if(m==='bx')bxTick(dt);
+  if(m==='night')$('hudScore').textContent=run.flakes+' glowing snowflakes';
+  if(m==='back'){for(const o of objs){if(o.t==='chest'&&!o.got&&Math.abs(o.x-P.x)<36&&Math.abs(o.y-P.y)<32&&P.z<30){o.got=true;const c=Math.round((150+hash(o.y|0,7)*350)/10)*10;save.coins+=c;run.coins+=c;run.chests=(run.chests||0)+1;popup('Treasure chest!','+'+c+' coins');sfx('goal');for(let i=0;i<18;i++)addPart({k:'spark',x:o.x,y:o.y,z:20,vx:rand(-140,140),vy:rand(-120,120),vz:rand(40,200),g:200,life:.9,max:.9,r:rand(3,6)});}}
+    if(!P.air&&P.state==='ride'&&!P.grind){P.v=Math.min(P.v,660);if(P.v>150&&Math.random()<.9)addPart({k:'puff',x:P.x+rand(-14,14),y:P.y+rand(-4,8),z:2,vx:rand(-90,90),vy:rand(-80,10),vz:rand(80,180),g:420,life:.8,max:.8,r:rand(3,7)});}
+    $('hudScore').textContent='Chests '+(run.chests||0)+' of '+(run.chestsTotal||0);}
+  if(m==='rescue'){for(const o of objs){if(o.t==='baby'&&!o.got&&Math.hypot(o.x-P.x,(o.y-P.y)*1.2)<48&&P.z<40){o.got=true;run.fol.push(o.kind);popup('Rescued a baby '+o.kind+'!','It follows you now');sfx('cheer');}}
+    if(P.state==='wipe'&&!run.wasWipe&&run.fol.length){const k=run.fol.pop();run.lost=(run.lost||0)+1;setTimeout(()=>popup('Oh no!','A baby '+k+' got scared and ran home'),500);}run.wasWipe=P.state==='wipe';
+    $('hudScore').textContent='Rescued '+run.fol.length+' of '+(run.babyTotal||0);}}
+function modeDrawTop(v){if(!run||run.mode!=='rescue'||!run.fol||!run.fol.length)return;const tr=P.trail;
+  run.fol.forEach((k,i)=>{let j=tr.length-1-(i+1)*6;while(j>0&&!tr[j])j--;const q=tr[j];if(!q)return;ctx.save();ctx.translate(q.x,q.y);ctx.scale(.62,.62);drawAnimal({kind:k,x:0,y:0,side:q.x<P.x?-1:1,cheerT:0,bubT:0,ph:i,walk:game.t+i},[]);ctx.restore();});}
+function modeDrawAfter(){if(!run||run.mode!=='night')return;ctx.save();
+  {const bk=save.cam==='back',px=bk?W/2:(P.x-cam.x)*S+W/2,py=bk?H*.72:(P.y-cam.y)*S+H*AY;const rg=ctx.createRadialGradient(px,py,70*S,px,py,Math.max(W,H)*.7);rg.addColorStop(0,'rgba(6,14,40,0)');rg.addColorStop(.35,'rgba(6,14,40,.45)');rg.addColorStop(1,'rgba(6,14,40,.78)');ctx.fillStyle=rg;ctx.fillRect(0,0,W,H);}
+  ctx.globalCompositeOperation='lighter';
+  if(save.cam!=='back')for(const o of objs){if(o.t!=='flake'||o.got)continue;const sx=(o.x-cam.x)*S+W/2,sy=(o.y-o.fz-14-cam.y)*S+H*AY;if(sx<-40||sx>W+40||sy<-40||sy>H+40)continue;const g=ctx.createRadialGradient(sx,sy,1,sx,sy,30*S);g.addColorStop(0,'rgba(150,230,255,.9)');g.addColorStop(1,'rgba(150,230,255,0)');ctx.fillStyle=g;ctx.fillRect(sx-30*S,sy-30*S,60*S,60*S);}
+  const glow=(x,y,r,c)=>{const g=ctx.createRadialGradient(x,y,1,x,y,r);g.addColorStop(0,`rgba(${c},.85)`);g.addColorStop(1,`rgba(${c},0)`);ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);};
+  const cols=['255,214,140','140,220,255','255,150,200'];
+  if(save.cam==='back'){for(let y=Math.ceil(BC.y/300)*300;y<BC.y+2400;y+=300)for(const sd of[-1,1]){const q=bp(sd*(TRACK+16),y,46);if(q)glow(q.x,q.y,Math.max(8,90*q.k),cols[Math.abs(Math.round(y/300))%3]);}}
+  else{const y0=cam.y-H*AY/S-100,y1=cam.y+H/S;for(let y=Math.ceil(y0/280)*280;y<y1;y+=280)for(const sd of[-1,1]){const sx=(sd*(TRACK+16)-cam.x)*S+W/2,sy=(y-cam.y)*S+H*AY-30*S;glow(sx,sy,80*S,cols[Math.abs(Math.round(y/280))%3]);}}
+  ctx.restore();}
+const _envAt=envAt;
+envAt=function(y){const e=_envAt(y);if(game.mode==='night')return Object.assign({},e,{dark:Math.max(e.dark,.82),darkCol:[8,18,48]});return e;};
+// ---- results
+function showModeResults(R,o){persist();RC.ghosts={};$('btnAgain').textContent='Ride again';$('resEyebrow').textContent=MODE_NAMES[R.mode];$('resTitle').textContent=o.title;
+  $('resStats').innerHTML=o.stats.map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('');$('resGoals').innerHTML='';$('resGoals').hidden=true;$('resUnlocks').hidden=true;
+  run=null;game.mode='free';game.state='results';$('hud').hidden=true;$('touch').hidden=true;showScreen('results');updateMenuStats();}
+const give=(R,c)=>{save.coins+=c;R.coins+=c;return c;};
+const ce=R=>Math.floor(R.coins).toLocaleString();
+const MODE_RESULT={
+  slalom:R=>{const tot=R.gateN||0,time=R.t+2*R.missed,best=!save.slalomBest||time<save.slalomBest;if(best)save.slalomBest=+time.toFixed(2);give(R,R.gates*40+(best?600:0));
+    return{title:best?'New slalom record!':R.missed?'Nice run':'Perfect run! Every gate',stats:[['Time',fmtTime(time)],['Best time',fmtTime(save.slalomBest)],['Gates',R.gates+' of '+tot],['Missed gates',R.missed+(R.missed?'  (+'+R.missed*2+'s)':'')],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+  bigair:R=>{const sc=(R.ba&&R.ba.scores)||[0,0,0],best=Math.max(0,...sc);const medal=best>=3000?'Gold':best>=1500?'Silver':best>=600?'Bronze':'';give(R,{Gold:2500,Silver:1200,Bronze:500}[medal]||100);
+    const rank={Gold:3,Silver:2,Bronze:1};if(medal&&(rank[medal]>(rank[save.bigairMedal]||0)))save.bigairMedal=medal;if(!save.bigairBest||best>save.bigairBest)save.bigairBest=best;
+    return{title:medal?'You won '+medal.toLowerCase()+'!':'Keep practicing',stats:[['Jump 1',(sc[0]||0).toLocaleString()],['Jump 2',(sc[1]||0).toLocaleString()],['Jump 3',(sc[2]||0).toLocaleString()],['Medal',medal||'None (600 for bronze)'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+  bx:R=>{const pl=R.place||1+(R.bots||[]).filter(b=>b.fin!=null).length;give(R,[1500,800,400,150][pl-1]||150);if(pl===1)save.bxWins=(save.bxWins||0)+1;
+    return{title:pl===1?'You won the boardercross!':ordinal(pl)+' place',stats:[['Place',ordinal(pl)+' of 4'],['Time',fmtTime(R.t)],['Total wins',(save.bxWins||0)],['Best trick',R.bestTrick||'Just racing'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+  night:R=>{give(R,500);if(!save.nightBest||R.flakes>save.nightBest)save.nightBest=R.flakes;
+    return{title:'What a starry ride',stats:[['Glowing snowflakes',R.flakes],['Best night',save.nightBest+' flakes'],['Finish bonus','+500 coins'],['Best trick',R.bestTrick||'Just cruising'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+  back:R=>{const n=R.chests||0,tot=R.chestsTotal||0,all=tot&&n>=tot;if(all)give(R,1500);if(!save.backBest||n>save.backBest)save.backBest=n;
+    return{title:all?'You found every chest!':n?'Treasure hunter':'The chests are hiding',stats:[['Chests found',n+' of '+tot],['All chests bonus',all?'+1,500 coins':'Find them all for 1,500'],['Best hunt',save.backBest+' chests'],['Best trick',R.bestTrick||'Powder surfing'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+  rescue:R=>{const n=(R.fol||[]).length,tot=R.babyTotal||0,all=tot&&n>=tot;give(R,n*300+(all?1000:0));save.rescueTotal=(save.rescueTotal||0)+n;
+    return{title:all?'You saved every baby!':n?'The babies are safe at home':'Nobody rescued this time',stats:[['Babies rescued',n+' of '+tot],['Got scared',R.lost||0],['Rescue reward',(n*300+(all?1000:0)).toLocaleString()+' coins'],['All-time rescues',save.rescueTotal],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};}};
+// ---- menu tiles
+const ACTS=[{m:'aval',name:'Avalanche Escape',rec:()=>save.avBest?'Best '+save.avBest.toLocaleString()+' m':'Outrun the snow'},{m:'slalom',name:'Slalom',rec:()=>save.slalomBest?'Best '+fmtTime(save.slalomBest):'Race through gates'},
+  {m:'bigair',name:'Big Air Contest',rec:()=>save.bigairMedal?'Best medal: '+save.bigairMedal:'3 jumps, win gold'},{m:'bx',name:'Boardercross',rec:()=>save.bxWins?save.bxWins+' win'+(save.bxWins>1?'s':''):'Race 3 riders'},
+  {m:'night',name:'Night Ride',rec:()=>save.nightBest?'Best '+save.nightBest+' flakes':'Glowing flakes x2'},{m:'back',name:'Backcountry',rec:()=>save.backBest?'Best '+save.backBest+' chests':'Find hidden chests'},
+  {m:'rescue',name:'Animal Rescue',rec:()=>save.rescueTotal?save.rescueTotal+' babies saved':'Save lost babies'}];
+function renderActs(){const g=$('actGrid');if(!g)return;g.innerHTML=ACTS.map(a=>`<button class="actTile" data-m="${a.m}">${a.name}<small>${a.rec()}</small></button>`).join('');g.querySelectorAll('.actTile').forEach(b=>b.onclick=()=>{sfx('ui');startRun(b.dataset.m);});}
+renderSide();
+
 if(save.village){save.village=false;persist();}
 if(isTouch)$('keysBox').open=false;
 document.addEventListener('pointerdown',()=>audioStart(),{once:true});
 requestAnimationFrame(t=>{last=t;loop(t);});
+</script>
+
+<div id="updBar" hidden style="position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99;background:#16407a;color:#fff;border-radius:16px;padding:12px 16px;font:700 15px Nunito,system-ui,sans-serif;box-shadow:0 10px 30px rgba(13,37,71,.3);display:flex;gap:12px;align-items:center;max-width:calc(100vw - 32px)">
+  <span>A new Powder Hollow update is ready!</span>
+  <button id="updBtn" style="background:#ffd23f;color:#16407a;border:0;border-radius:12px;padding:8px 14px;font:800 15px Nunito,system-ui,sans-serif;cursor:pointer">Update now</button>
+</div>
+<script>
+(function(){
+  if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+  var meta=document.querySelector('meta[name="ph-build"]'),mine=meta?meta.content:'';
+  function check(){if(!navigator.onLine)return;fetch('./?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/name="ph-build" content="(\d+)"/);if(m&&mine&&m[1]!==mine)document.getElementById('updBar').hidden=false;}).catch(function(){});}
+  document.getElementById('updBtn').onclick=function(){location.reload();};
+  setInterval(check,5*60*1000);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')check();});
+})();
+</script>
+<div id="appHelp" hidden style="position:fixed;inset:0;z-index:100;background:rgba(13,37,71,.45);display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:22px;max-width:380px;padding:22px;font:600 15px/1.45 Nunito,system-ui,sans-serif;color:#16407a;display:grid;gap:12px;box-shadow:0 20px 50px rgba(13,37,71,.3)">
+    <b style="font:800 24px Sniglet,system-ui,sans-serif">Get Powder Hollow</b>
+    <div id="appHelpText"></div>
+    <div style="font-size:13px;color:#4d6a8f">It opens full screen like a real app, works without internet after your first ride, and updates itself.</div>
+    <button id="appHelpClose" style="background:#2f7fd6;color:#fff;border:0;border-radius:14px;padding:11px;font:800 16px Nunito,system-ui,sans-serif;cursor:pointer">Got it</button>
+  </div>
+</div>
+<script>
+(function(){
+  var dp=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;});
+  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+  var foot=document.querySelector('.menu-foot');if(standalone||!foot)return;
+  var b=document.createElement('button');b.className='chip';b.textContent='Get the app';foot.appendChild(b);
+  b.onclick=function(){
+    if(dp){dp.prompt();dp.userChoice.then(function(){dp=null;});return;}
+    var ua=navigator.userAgent,ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),t;
+    if(ios)t='In Safari, tap the Share button (the square with an arrow pointing up), then tap <b>Add to Home Screen</b>.';
+    else if(/Android/.test(ua))t='Tap the browser menu (three dots), then tap <b>Install app</b> or <b>Add to Home screen</b>.';
+    else if(/Safari/.test(ua)&&!/Chrome|Edg/.test(ua))t='In Safari on your Mac, click <b>File</b> in the menu bar, then <b>Add to Dock</b>.';
+    else t='In Chrome or Edge, click the install icon at the right end of the address bar, or open the menu and choose <b>Install Powder Hollow</b>.';
+    document.getElementById('appHelpText').innerHTML=t;document.getElementById('appHelp').hidden=false;};
+  document.getElementById('appHelpClose').onclick=function(){document.getElementById('appHelp').hidden=true;};
+})();
 </script>
 
 </body>
