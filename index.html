@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793224933">
+<meta name="ph-build" content="1793225322">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -114,6 +114,8 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
 #hudRight{display:grid;gap:8px;justify-items:end}
 #pauseBtn{pointer-events:auto;border:none}
 #pauseBtn svg{width:18px;height:18px;display:block}
+#fogOpts .btn.on{outline:3px solid var(--deep)}
+#hudMain,#hudProgress{pointer-events:auto}
 #hudProgress{height:8px;width:min(260px,40vw);background:rgba(255,255,255,.7);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
 #hudBar{height:100%;width:0;background:linear-gradient(90deg,var(--sky),var(--blue));border-radius:99px}
 #hudGoals{list-style:none;margin:0;padding:10px 14px;display:grid;gap:6px;font-size:13px;font-weight:700;max-width:min(280px,60vw)}
@@ -291,6 +293,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <button class="chip" id="btnAccount">Sign in</button>
         <button class="chip" id="btnView">View: Top</button>
         <button class="chip" id="btnSound">Sound on</button>
+        <button class="chip" id="btnSettings">Settings</button>
       </div>
       <details class="keys" id="keysBox" open>
         <summary>How to ride</summary>
@@ -397,6 +400,15 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <button class="btn small" id="acctSignOut" type="button">Sign out</button>
       </div>
       <p class="lockline" id="acctMsg" role="status"></p>
+    </div>
+  </section>
+
+  <section id="settings" class="screen" hidden>
+    <div class="panel stack">
+      <div class="card-head"><div><p class="eyebrow">Settings</p><h2>Fog level</h2></div><button class="chip" id="setBack">Back</button></div>
+      <p class="lockline">More fog makes it harder to see what is coming. Works in both the top view and the behind view.</p>
+      <div class="menu-buttons" id="fogOpts"></div>
+      <p class="lockline" id="fogNote"></p>
     </div>
   </section>
 
@@ -1136,7 +1148,7 @@ function finishRun(){
 }
 
 /* ---------- Screens ---------- */
-const SCREENS=['menu','challenges','locker','pause','results','race','account','vLift','vFriends','vDecor','vBag','vBuild'];
+const SCREENS=['menu','settings','challenges','locker','pause','results','race','account','vLift','vFriends','vDecor','vBag','vBuild'];
 function showScreen(id){SCREENS.forEach(s=>$(s).hidden=s!==id);}
 function starSvg(on){return`<svg class="star${on?' on':''}" viewBox="0 0 24 24" aria-label="${on?'Star earned':'Star not earned'}"><path d="M12 2.5l2.9 6.2 6.8.7-5.1 4.6 1.5 6.7L12 17.3l-6.1 3.4 1.5-6.7-5.1-4.6 6.8-.7z"/></svg>`;}
 function updateMenuStats(){$('btnView').textContent=save.cam==='back'?'View: Behind':'View: Top';$('menuCoins').textContent=coinStr();$('menuStars').textContent=totalStars();$('menuStarsTotal').textContent=CHALLENGES.length*3;$('btnSound').textContent=save.muted?'Sound off':'Sound on';}
@@ -3358,9 +3370,9 @@ resolveWeather();buildRoute();resize();resetWorld();updateMenuStats();initAccoun
 /* ---------- Activities: slalom, big air, boardercross, night ride, backcountry, animal rescue ---------- */
 const MODE_NAMES={aval:'Avalanche Escape',pipe:'Halfpipe',slalom:'Slalom',bigair:'Big Air Contest',bx:'Boardercross',night:'Night Ride',back:'Backcountry Powder',rescue:'Animal Rescue'};
 const MODE_LEN={aval:()=>Math.round(FREE_LEN*.6),pipe:()=>1e9,slalom:()=>Math.round(FREE_LEN*.35),bigair:()=>1e9,bx:()=>Math.round(RACE_LEN*.6),night:()=>Math.round(FREE_LEN*.6),back:()=>Math.round(FREE_LEN*.6),rescue:()=>Math.round(FREE_LEN*.5)};
-const GATE_W=130;
+const GATE_W=78;
 function modeGen(y0,y1){const m=game.mode;if(!run)return false;
-  if(m==='slalom'){while(nextRow<y1){const ry=nextRow;if(ry<700){placeFlakes(0,ry+200,'line');nextRow=900;continue;}run.gateN=(run.gateN||0)+1;const sd=run.gateN%2?1:-1;const gx=sd*rand(80,170);objs.push({t:'gate',x:gx,y:ry,col:sd>0?'#e2486b':'#3d8ee0',state:0});if(Math.random()<.5)for(let i=0;i<3;i++)flake(gx*.4,ry+140+i*45,0);nextRow+=rand(400,470);}return true;}
+  if(m==='slalom'){while(nextRow<y1){const ry=nextRow;if(ry<700){placeFlakes(0,ry+200,'line');nextRow=900;continue;}run.gateN=(run.gateN||0)+1;const sd=run.gateN%2?1:-1;const gx=sd*rand(140,250);objs.push({t:'gate',x:gx,y:ry,col:sd>0?'#e2486b':'#3d8ee0',state:0});if(Math.random()<.5)for(let i=0;i<3;i++)flake(gx*.4,ry+140+i*45,0);if(run.gateN>1){{const ts=rand(.8,1.05);objs.push({t:'tree',x:gx*.15+rand(-20,20),y:ry-140,s:ts,r:12*ts,ht:80});}if(Math.random()<.55)objs.push({t:'rock',x:-gx*.6,y:ry+120,r:rand(15,20),ht:22,sh:rand(0,1)});}nextRow+=rand(270,320);}return true;}
   if(m==='bigair'){if(y0===0){objs.push({t:'boost',x:0,y:420,w:70,h:96},{t:'boost',x:0,y:880,w:70,h:96},{t:'ramp',x:0,y:1400,w:170,h:120,rh:42,big:true,giant:true});
       for(let i=1;i<=10;i++){const t=i*.2,fz=42+1080*t-.5*GRAV*t*t;if(fz>12)flake(0,1520+650*t,fz);}
       for(const sd of[-1,1])for(let i=0;i<10;i++)objs.push({t:'animal',kind:pick(['fox','rabbit','owl','penguin']),x:sd*(TRACK+rand(10,60)),y:1150+i*90,side:sd,cheerT:0,bubT:0,bubble:'',ph:rand(0,TAU),greeted:true});}
@@ -3381,7 +3393,7 @@ DECOR.baby={r:0,ht:0,draw(o){if(o.got)return;ctx.save();ctx.translate(o.x,o.y);c
   if(Math.sin(game.t*2+o.ph)>0)drawBubble({x:o.x,y:o.y-46,text:'Help!',a:1});}};
 // ---- start, tick, draw
 function modeStart(m){if(!run)return;
-  if(m==='slalom'){run.t=0;run.gates=0;run.missed=0;P.v=320;setTimeout(()=>toast('Slalom! Ride between each pair of flags. Missing one adds 2 seconds.'),300);}
+  if(m==='slalom'){run.t=0;run.gates=0;run.missed=0;P.v=430;setTimeout(()=>toast('Slalom! Ride between each pair of flags. The gates are tight now, and missing one adds 5 seconds.'),300);}
   if(m==='bigair')setTimeout(()=>toast('Big Air Contest! 3 jumps. Ride straight at the giant ramp, then spin, flip and grab.'),300);
   if(m==='bx'){bxInit();setTimeout(()=>toast('Boardercross! Beat Maple, Juniper and Flurry to the bottom.'),300);}
   if(m==='night')setTimeout(()=>toast('Night Ride! Glowing snowflakes are worth double tonight.'),300);
@@ -3404,7 +3416,7 @@ function bigAirTick(dt){const B=run.ba||(run.ba={phase:'run',scores:[],t:0});if(
   else if(B.phase==='done'){B.t+=dt;if(B.t>2.6){B.scores.push(B.res||0);if(B.scores.length>=3){run.finished=true;game.endT=2.4;sfx('goal');}else{resetWorld();comboDrop();B.phase='run';toast('Jump '+(B.scores.length+1)+' of 3. Go big!');}}}
   $('hudScore').textContent='Jump '+Math.min(3,B.scores.length+1)+' of 3';$('hudFlakes').textContent='Best '+Math.max(0,...B.scores).toLocaleString()+' points';}
 function modeTick(dt){const m=run.mode;
-  if(m==='slalom'){if(!run.finished)run.t+=dt;for(const o of objs){if(o.t!=='gate'||o.state)continue;if(P.prevY<o.y&&P.y>=o.y){if(Math.abs(P.x-o.x)<GATE_W/2){o.state=1;run.gates++;sfx('collect',run.gates%8);}else{o.state=2;run.missed++;sfx('poof');popup('Missed a gate','+2 seconds');}}}
+  if(m==='slalom'){if(!run.finished)run.t+=dt;for(const o of objs){if(o.t!=='gate'||o.state)continue;if(P.prevY<o.y&&P.y>=o.y){if(Math.abs(P.x-o.x)<GATE_W/2){o.state=1;run.gates++;sfx('collect',run.gates%8);}else{o.state=2;run.missed++;sfx('poof');popup('Missed a gate','+5 seconds');}}}
     $('hudScore').textContent=fmtTime(run.t+2*run.missed);$('hudFlakes').textContent='Gates '+run.gates+'   missed '+run.missed;}
   if(m==='bigair')bigAirTick(dt);
   if(m==='bx')bxTick(dt);
@@ -3435,8 +3447,8 @@ function showModeResults(R,o){persist();RC.ghosts={};$('btnAgain').textContent='
 const give=(R,c)=>{save.coins+=c;R.coins+=c;return c;};
 const ce=R=>Math.floor(R.coins).toLocaleString();
 const MODE_RESULT={
-  slalom:R=>{const tot=R.gateN||0,time=R.t+2*R.missed,best=!save.slalomBest||time<save.slalomBest;if(best)save.slalomBest=+time.toFixed(2);give(R,R.gates*40+(best?600:0));
-    return{title:best?'New slalom record!':R.missed?'Nice run':'Perfect run! Every gate',stats:[['Time',fmtTime(time)],['Best time',fmtTime(save.slalomBest)],['Gates',R.gates+' of '+tot],['Missed gates',R.missed+(R.missed?'  (+'+R.missed*2+'s)':'')],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
+  slalom:R=>{const tot=R.gateN||0,time=R.t+5*R.missed,best=!save.slalomBest||time<save.slalomBest;if(best)save.slalomBest=+time.toFixed(2);give(R,R.gates*40+(best?600:0));
+    return{title:best?'New slalom record!':R.missed?'Nice run':'Perfect run! Every gate',stats:[['Time',fmtTime(time)],['Best time',fmtTime(save.slalomBest)],['Gates',R.gates+' of '+tot],['Missed gates',R.missed+(R.missed?'  (+'+R.missed*5+'s)':'')],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
   bigair:R=>{const sc=(R.ba&&R.ba.scores)||[0,0,0],best=Math.max(0,...sc);const medal=best>=3000?'Gold':best>=1500?'Silver':best>=600?'Bronze':'';if(medal){save.medals[medal.toLowerCase()]++;}else give(R,100);
     const rank={Gold:3,Silver:2,Bronze:1};if(medal&&(rank[medal]>(rank[save.bigairMedal]||0)))save.bigairMedal=medal;if(!save.bigairBest||best>save.bigairBest)save.bigairBest=best;
     return{title:medal?'You won '+medal.toLowerCase()+'!':'Keep practicing',stats:[['Jump 1',(sc[0]||0).toLocaleString()],['Jump 2',(sc[1]||0).toLocaleString()],['Jump 3',(sc[2]||0).toLocaleString()],['Medal',medal?medal+'! Sell it in the Shop for '+MEDALS.find(x=>x.id===medal.toLowerCase()).val.toLocaleString():'None (600 for bronze)'],['Coins earned',ce(R)],['Coins in wallet',coinStr()]]};},
@@ -3479,10 +3491,13 @@ renderSide();
 /* ---------- Fog in the behind view, Fog-Free Glasses, Free Ride warmth ---------- */
 GEAR.goggles.push({id:'clearview',name:'Fog-Free Glasses',price:500000,lens:['#7fe3ff','#ffffff'],strap:'#ffd23f',desc:'Clears away all the fog everywhere, even in blizzards.'});
 GEAR.scarf.push({id:'heatscarf',name:'Heated Scarf',price:500000,c1:'#ff6a2a',c2:'#ffd23f',desc:'Keeps you toasty warm forever in Free Ride, so you always get the full speed boost.'});
-const noFog=()=>save.gear.goggles==='clearview';
+const noFog=()=>save.gear.goggles==='clearview'||save.fogLvl==='off';
+const FOG_LV=[['off','No fog','Clear skies. Easiest.',0],['light','Light fog','A little haze far away.',.55],['normal','Normal fog','The usual mountain fog.',1],['heavy','Heavy fog','Hard to see what is coming.',1.35],['super','Super thick fog','Really hard. Only the brave.',1.7]];
+const fogM=()=>{const l=FOG_LV.find(f=>f[0]===(save.fogLvl||'normal'));return l?l[3]:1;};
+const fa=a=>Math.min(.97,a*fogM()).toFixed(3);
 function drawFog(){if(noFog())return;const hy=clamp(BHY/H,.05,.9);
-  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(228,237,247,.42)');g.addColorStop(hy,'rgba(234,241,249,.74)');g.addColorStop(Math.min(.96,hy+.3),'rgba(234,241,249,.4)');g.addColorStop(1,'rgba(234,241,249,.08)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  for(let i=0;i<10;i++){const span=W+500,x=((i*211+game.t*(18+i*4)*(i%2?1:-1))%span+span)%span-250,y=BHY+(i%5)*H*.07-20;ctx.globalAlpha=.2;ell(x,y,240,46,'#ffffff');ell(x+120,y+14,170,34,'#f3f7fc');}ctx.globalAlpha=1;}
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(228,237,247,'+fa(.42)+')');g.addColorStop(hy,'rgba(234,241,249,'+fa(.74)+')');g.addColorStop(Math.min(.96,hy+.3),'rgba(234,241,249,'+fa(.4)+')');g.addColorStop(1,'rgba(234,241,249,'+fa(.08)+')');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<10;i++){const span=W+500,x=((i*211+game.t*(18+i*4)*(i%2?1:-1))%span+span)%span-250,y=BHY+(i%5)*H*.07-20;ctx.globalAlpha=+fa(.2);ell(x,y,240,46,'#ffffff');ell(x+120,y+14,170,34,'#f3f7fc');}ctx.globalAlpha=1;}
 const _drawBack=drawBack;
 function riderOverFog(){const q=bp(P.x,P.y,P.z);if(!q)return;ctx.save();ctx.translate(q.x,q.y);ctx.scale(q.k*1.25,q.k*1.25);if(P.inv>0&&((P.inv*10)|0)%2)ctx.globalAlpha=.55;
   if(P.state==='wipe'&&P.banked){drawBank({x:0,y:4});drawHead(0,-14,gearById('hat',save.gear.hat),game.t,gearById('rider',save.gear.rider),gearById('goggles',save.gear.goggles));}
@@ -3490,8 +3505,8 @@ function riderOverFog(){const q=bp(P.x,P.y,P.z);if(!q)return;ctx.save();ctx.tran
   if(P.bubble)drawBubble({x:0,y:-80,text:P.bubble,a:1});ctx.restore();ctx.globalAlpha=1;}
 drawBack=function(env,k){_drawBack(env,k);if(!noFog()){drawFog();riderOverFog();}};
 function drawTopFog(){if(noFog()||game.state==='menu')return;const px=(P.x-cam.x)*S+W/2,py=(P.y-cam.y)*S+H*AY,R=Math.max(W,H);
-  const g=ctx.createRadialGradient(px,py+H*.06,Math.min(W,H)*.13,px,py+H*.06,R*.62);g.addColorStop(0,'rgba(234,241,249,0)');g.addColorStop(.35,'rgba(234,241,249,.5)');g.addColorStop(1,'rgba(234,241,249,.8)');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  for(let i=0;i<9;i++){const span=W+500,x=((i*233+game.t*(14+i*3)*(i%2?1:-1))%span+span)%span-250,y=(i*H*.13+game.t*8*(1+i%3))%(H+200)-100;if(Math.hypot(x-px,y-py)<Math.min(W,H)*.22)continue;ctx.globalAlpha=.22;ell(x,y,230,60,'#ffffff');ell(x+110,y+20,160,44,'#f3f7fc');}ctx.globalAlpha=1;}
+  const m=fogM(),g=ctx.createRadialGradient(px,py+H*.06,Math.min(W,H)*(.16-.04*m),px,py+H*.06,R*(.62-.12*m));g.addColorStop(0,'rgba(234,241,249,0)');g.addColorStop(.3,'rgba(234,241,249,'+fa(.62)+')');g.addColorStop(1,'rgba(234,241,249,'+fa(.9)+')');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<9;i++){const span=W+500,x=((i*233+game.t*(14+i*3)*(i%2?1:-1))%span+span)%span-250,y=(i*H*.13+game.t*8*(1+i%3))%(H+200)-100;if(Math.hypot(x-px,y-py)<Math.min(W,H)*.2)continue;ctx.globalAlpha=+fa(.3);ell(x,y,230,60,'#ffffff');ell(x+110,y+20,160,44,'#f3f7fc');}ctx.globalAlpha=1;}
 // warmth
 const JMAX=Math.max(...GEAR.jacket.map(j=>j.price||0),1);
 const jacketWarm=id=>clamp((gearById('jacket',id).price||0)/JMAX,0,1);
@@ -3535,6 +3550,18 @@ function renderSellShop(){const L=sellList(),tot=L.reduce((t,x)=>t+x.val*(x.k===
 try{if(new URLSearchParams(location.search).get('bonus')==='sextillion'&&!save.bonusSext){save.bonusSext=true;save.coins+=1e22;persist();setTimeout(()=>{try{updateMenuStats();}catch(e){}toast('Bonus! You got 10 sextillion coins.');},700);}}catch(e){}
 
 if(save.village){save.village=false;persist();}
+function renderSettings(){const cur=save.fogLvl||'normal';$('fogOpts').innerHTML=FOG_LV.map(f=>`<button class="btn small${f[0]===cur?' on primary':''}" data-fog="${f[0]}">${f[1]}<span>${f[2]}</span></button>`).join('');
+  $('fogNote').textContent=save.gear.goggles==='clearview'?'You are wearing Fog-Free Glasses, so you will not see any fog. Take them off in the Shop to use this.':'';}
+$('btnSettings').onclick=()=>{sfx('ui');renderSettings();showScreen('settings');};
+$('setBack').onclick=()=>{sfx('ui');showScreen('menu');updateMenuStats();};
+$('fogOpts').onclick=e=>{const b=e.target.closest('[data-fog]');if(!b)return;sfx('ui');save.fogLvl=b.dataset.fog;persist();renderSettings();};
+const SECRET={a:0,b:0,t:0};
+function secretTap(w){if(!run||run.mode!=='rescue'||game.state!=='play')return;const now=performance.now();if(now-SECRET.t>4000){SECRET.a=0;SECRET.b=0;}SECRET.t=now;
+  if(w==='a'){if(SECRET.b){SECRET.a=0;SECRET.b=0;}SECRET.a++;return;}
+  if(SECRET.a!==9){SECRET.a=0;SECRET.b=0;return;}if(++SECRET.b<2)return;SECRET.a=0;SECRET.b=0;
+  persist();run=null;game.fromVillage=false;enterVillage('out',VIL_SPAWN.start);}
+$('hudMain').addEventListener('pointerdown',e=>{e.stopPropagation();secretTap('a');});
+$('hudProgress').addEventListener('pointerdown',e=>{e.stopPropagation();secretTap('b');});
 if(isTouch)$('keysBox').open=false;
 document.addEventListener('pointerdown',()=>audioStart(),{once:true});
 requestAnimationFrame(t=>{last=t;loop(t);});
