@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1794868799">
+<meta name="ph-build" content="1794871395">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,7 +70,7 @@ h3{font-size:18px}
 .sellTile:hover .sellBig{background:#c0304f}
 .sellEmpty{grid-column:1/-1;padding:20px;text-align:center;color:var(--ink-soft);font-weight:700}
 .sellTop{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:800;color:var(--deep);flex-wrap:wrap}
-#hudBoost{display:grid;grid-template-columns:62px 130px;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--ink-soft);margin-top:4px}
+#hudBoost{pointer-events:auto;cursor:pointer;display:grid;grid-template-columns:62px 130px;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--ink-soft);margin-top:4px}
 #hudBoost b{display:block;height:10px;border-radius:9px;background:#d6e8fa;overflow:hidden;border:1px solid #bcd6f2}
 #hudBoost i{display:block;height:100%;width:100%;border-radius:9px;background:#f2b630;transition:width .1s}
 #hudBoost.ready i{background:#2f7fd6}
@@ -254,7 +254,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <div id="hudMode">Free Ride</div>
         <div id="hudScore"></div>
         <div id="hudFlakes"></div>
-        <div id="hudBoost" hidden><span>Boost</span><b><i id="hudBoostBar"></i></b></div>
+        <div id="hudBoost" hidden title="Power boost"><span id="hudBoostLbl">Boost (Q)</span><b><i id="hudBoostBar"></i></b></div>
         <div id="hudWarm" hidden><span id="hudWarmLbl">Warm</span><b><i id="hudWarmBar"></i></b></div>
       </div>
       <div id="hudRight">
@@ -276,6 +276,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
       <div class="tgrid">
         <button class="tbtn" data-k="up" aria-label="Front flip"><span class="tlab"><svg viewBox="0 0 24 24" fill="none" stroke="#16407a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>Flip</span></button>
         <button class="tbtn" data-k="down" aria-label="Backflip"><span class="tlab"><svg viewBox="0 0 24 24" fill="none" stroke="#16407a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>Back</span></button>
+        <button class="tbtn act" id="tBoost">Boost</button>
         <button class="tbtn act" data-k="trick">Grab</button>
         <button class="tbtn act" data-k="jump">Jump</button>
       </div>
@@ -312,7 +313,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
           <span>Combos</span><span>Land tricks in a row without falling. Mix spins, grabs, flips and rails for style points.</span>
           <span><kbd>P</kbd></span><span>Pause</span>
           <span><kbd>V</kbd></span><span>Switch between top view and behind view</span>
-          <span><kbd>Q</kbd></span><span>Power boost: a quick burst of speed. It needs 3 seconds to charge again.</span>
+          <span><kbd>Q</kbd></span><span>Power boost: a quick burst of speed. You can also tap the Boost bar. It needs 3 seconds to charge again.</span>
           <span>Xbox controller</span><span>Plug it in and press any button. LT gas, RT brake, A power boost, B jump, X grab, Y switch view, left stick or D-pad steer and flip, Menu button pause.</span>
         </div>
       </details>
@@ -3521,9 +3522,11 @@ function padPoll(dt){PAD.cd=Math.max(0,PAD.cd-dt);
       if(hit(1))padBack();if(hit(9)&&st==='paused')resumeGame();}
     if(st==='play'||st==='village')document.querySelectorAll('.padFocus').forEach(x=>x.classList.remove('padFocus'));
     PAD.prev=gp.buttons.map((x,i)=>B(i));}
-  if(hb){const show=game.state==='play'&&(PAD.on||PAD.cd>0);if(hb.hidden===show)hb.hidden=!show;if(show){$('hudBoostBar').style.width=Math.round((1-PAD.cd/BOOST_CD)*100)+'%';hb.classList.toggle('ready',PAD.cd<=0);}}}
+  if(hb){const show=game.state==='play';if(hb.hidden===show)hb.hidden=!show;if(show){$('hudBoostBar').style.width=Math.round((1-PAD.cd/BOOST_CD)*100)+'%';hb.classList.toggle('ready',PAD.cd<=0);const lb=$('hudBoostLbl'),t=PAD.on?'Boost (A)':isTouch?'Boost':'Boost (Q)';if(lb.textContent!==t)lb.textContent=t;}const tb=$('tBoost');if(tb){tb.classList.toggle('on',PAD.cd>0);tb.style.opacity=PAD.cd>0?.5:1;}}}
 const _readKeysPad=readKeys;readKeys=function(){const c=_readKeysPad();if(PAD.on){c.left=c.left||PAD.left;c.right=c.right||PAD.right;if(P&&P.air){c.up=c.up||PAD.up;c.down=c.down||PAD.down;}c.jump=c.jump||PAD.jump;c.trick=c.trick||PAD.trick;c.gas=PAD.gas;c.brake=PAD.brake;}return c;};
 const _updatePad=update;update=function(dt){try{padPoll(dt);}catch(e){}return _updatePad(dt);};
+$('hudBoost').addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();powerBoost();});
+$('tBoost').addEventListener('pointerdown',e=>{e.preventDefault();audioStart();powerBoost();});
 addEventListener('gamepadconnected',()=>{try{padPoll(0);}catch(e){}});
 
 /* ---------- Village look: real buildings, fountain, better furniture, back view ---------- */
