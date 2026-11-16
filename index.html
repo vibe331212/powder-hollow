@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1793290720">
+<meta name="ph-build" content="1794868799">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,6 +70,11 @@ h3{font-size:18px}
 .sellTile:hover .sellBig{background:#c0304f}
 .sellEmpty{grid-column:1/-1;padding:20px;text-align:center;color:var(--ink-soft);font-weight:700}
 .sellTop{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:800;color:var(--deep);flex-wrap:wrap}
+#hudBoost{display:grid;grid-template-columns:62px 130px;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--ink-soft);margin-top:4px}
+#hudBoost b{display:block;height:10px;border-radius:9px;background:#d6e8fa;overflow:hidden;border:1px solid #bcd6f2}
+#hudBoost i{display:block;height:100%;width:100%;border-radius:9px;background:#f2b630;transition:width .1s}
+#hudBoost.ready i{background:#2f7fd6}
+.padFocus{outline:4px solid #f2b630!important;outline-offset:3px}
 #hudWarm{display:grid;grid-template-columns:62px 130px;gap:8px;align-items:center;font-size:12px;font-weight:800;color:var(--ink-soft);margin-top:4px}
 #hudWarm b{display:block;height:10px;border-radius:9px;background:#d6e8fa;overflow:hidden;border:1px solid #bcd6f2}
 #hudWarm i{display:block;height:100%;width:50%;border-radius:9px;transition:width .2s,background-color .4s}
@@ -249,6 +254,7 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
         <div id="hudMode">Free Ride</div>
         <div id="hudScore"></div>
         <div id="hudFlakes"></div>
+        <div id="hudBoost" hidden><span>Boost</span><b><i id="hudBoostBar"></i></b></div>
         <div id="hudWarm" hidden><span id="hudWarmLbl">Warm</span><b><i id="hudWarmBar"></i></b></div>
       </div>
       <div id="hudRight">
@@ -306,6 +312,8 @@ kbd{font-family:var(--f-body);font-weight:800;font-size:12px;background:var(--sn
           <span>Combos</span><span>Land tricks in a row without falling. Mix spins, grabs, flips and rails for style points.</span>
           <span><kbd>P</kbd></span><span>Pause</span>
           <span><kbd>V</kbd></span><span>Switch between top view and behind view</span>
+          <span><kbd>Q</kbd></span><span>Power boost: a quick burst of speed. It needs 3 seconds to charge again.</span>
+          <span>Xbox controller</span><span>Plug it in and press any button. LT gas, RT brake, A power boost, B jump, X grab, Y switch view, left stick or D-pad steer and flip, Menu button pause.</span>
         </div>
       </details>
     </div>
@@ -919,6 +927,8 @@ function updatePlayer(dt,c){
     P.a=clamp(P.a,-1.25,1.25);
     let acc=230*Math.cos(P.a)-40-0.00042*P.v*P.v*(icy?.6:1);
     if(c.down)acc+=170;
+    if(c.gas)acc+=190*c.gas;
+    if(c.brake)acc-=420*c.brake;
     if(P.boostT<=0)acc-=Math.abs(Math.sin(P.a))*170*(icy?.4:1);
     if(c.up)acc-=finishing?520:400;
     P.v=clamp(P.v+acc*dt,finishing?0:90,980);
@@ -3479,6 +3489,43 @@ function renderSellShop(){const L=sellList(),tot=L.reduce((t,x)=>t+x.val*(x.k===
 try{if(new URLSearchParams(location.search).get('bonus')==='sextillion'&&!save.bonusSext){save.bonusSext=true;save.coins+=1e22;persist();setTimeout(()=>{try{updateMenuStats();}catch(e){}toast('Bonus! You got 10 sextillion coins.');},700);}}catch(e){}
 
 if(save.village){save.village=false;persist();}
+
+/* ---------- Xbox controller ---------- */
+const PAD={on:false,prev:[],gas:0,brake:0,left:false,right:false,up:false,down:false,jump:false,trick:false,cd:0,navT:0,vk:{}};
+const BOOST_CD=3;
+function powerBoost(){if(game.state!=='play'||!P||P.state!=='ride'||PAD.cd>0)return;P.v=Math.min(980,P.v+150);P.boostT=Math.max(P.boostT,.55);PAD.cd=BOOST_CD;sfx('boost');for(let i=0;i<8;i++)addPart({k:'streak',x:P.x+rand(-12,12),y:P.y-8,z:P.z+rand(4,36),vx:0,vy:-P.v*.3,vz:0,life:.4,max:.4,r:rand(16,30)});}
+addEventListener('keydown',e=>{if(e.code==='KeyQ'&&game.state==='play'&&!e.repeat){e.preventDefault();powerBoost();}});
+function padNavTargets(){return[...document.querySelectorAll('button,a[href],summary,input,select,[data-fog],.actTile')].filter(el=>{if(el.disabled)return false;const r=el.getBoundingClientRect();if(r.width<4||r.height<4||r.bottom<0||r.top>innerHeight+400)return false;const cs=getComputedStyle(el);return cs.visibility!=='hidden'&&el.offsetParent!==null&&!el.closest('#hud,#touch,#vhud');});}
+function padFocus(el){document.querySelectorAll('.padFocus').forEach(x=>x.classList.remove('padFocus'));if(!el)return;el.classList.add('padFocus');try{el.focus({preventScroll:true});}catch(e){}el.scrollIntoView({block:'nearest',behavior:'smooth'});}
+function padMove(dx,dy){const list=padNavTargets();if(!list.length)return;let cur=document.querySelector('.padFocus');if(!cur||!list.includes(cur)){padFocus(list[0]);return;}
+  const r=cur.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let best=null,bd=1e9;
+  for(const el of list){if(el===cur)continue;const q=el.getBoundingClientRect(),ex=q.left+q.width/2,ey=q.top+q.height/2,ox=ex-cx,oy=ey-cy;const along=ox*dx+oy*dy;if(along<=4)continue;const side=Math.abs(ox*dy-oy*dx);const d=along+side*2.2;if(d<bd){bd=d;best=el;}}
+  if(best)padFocus(best);}
+function padBack(){const btns=padNavTargets().filter(el=>/^(back|close|done|cancel|keep riding|back to the lodge)$/i.test(el.textContent.trim()));if(btns.length){btns[0].click();return;}if(game.state==='paused')resumeGame();}
+function padPoll(dt){PAD.cd=Math.max(0,PAD.cd-dt);
+  const pads=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const g of pads)if(g&&g.connected&&g.buttons&&g.buttons.length){gp=g;break;}
+  const hb=$('hudBoost');
+  if(!gp){if(PAD.on){PAD.on=false;PAD.gas=PAD.brake=0;for(const k of['left','right','up','down'])if(PAD.vk[k]){keys[k]=false;PAD.vk[k]=false;}toast('Controller disconnected');}}
+  else{const B=i=>{const x=gp.buttons[i];return!!x&&(x.pressed||x.value>.45);},V=i=>{const x=gp.buttons[i];return x?Math.max(x.value||0,x.pressed?1:0):0;},hit=i=>B(i)&&!PAD.prev[i];
+    if(!PAD.on){PAD.on=true;toast('Controller ready! LT gas, RT brake, A boost, B jump, X grab, Y view');}
+    const ax=gp.axes[0]||0,ay=gp.axes[1]||0;
+    PAD.left=B(14)||ax<-.35;PAD.right=B(15)||ax>.35;PAD.up=B(12)||ay<-.5;PAD.down=B(13)||ay>.5;
+    PAD.gas=V(6)>.08?V(6):0;PAD.brake=V(7)>.08?V(7):0;PAD.jump=B(1);PAD.trick=B(2);
+    const st=game.state;
+    if(st==='play'){if(hit(1))jumpEdge=true;if(hit(0))powerBoost();if(hit(3))toggleView();if(hit(9))pauseGame();}
+    else if(st==='village'){for(const k of['left','right','up','down']){if(PAD[k]!==!!PAD.vk[k]){keys[k]=PAD[k];PAD.vk[k]=PAD[k];}}
+      if(hit(0)||hit(1))villageAct();if(hit(2)&&typeof throwSnowball==='function')throwSnowball();if(hit(3))toggleVView();if(hit(9)){const m=$('vMenu');if(m)m.click();}}
+    else{PAD.navT-=dt;const dx=PAD.left?-1:PAD.right?1:0,dy=PAD.up?-1:PAD.down?1:0;
+      if(dx||dy){if(PAD.navT<=0){padMove(dx,dy);PAD.navT=PAD.navWas?.16:.32;PAD.navWas=true;}}else{PAD.navT=0;PAD.navWas=false;}
+      if(hit(0)){const f=document.querySelector('.padFocus');if(f&&padNavTargets().includes(f))f.click();else padMove(0,1);}
+      if(hit(1))padBack();if(hit(9)&&st==='paused')resumeGame();}
+    if(st==='play'||st==='village')document.querySelectorAll('.padFocus').forEach(x=>x.classList.remove('padFocus'));
+    PAD.prev=gp.buttons.map((x,i)=>B(i));}
+  if(hb){const show=game.state==='play'&&(PAD.on||PAD.cd>0);if(hb.hidden===show)hb.hidden=!show;if(show){$('hudBoostBar').style.width=Math.round((1-PAD.cd/BOOST_CD)*100)+'%';hb.classList.toggle('ready',PAD.cd<=0);}}}
+const _readKeysPad=readKeys;readKeys=function(){const c=_readKeysPad();if(PAD.on){c.left=c.left||PAD.left;c.right=c.right||PAD.right;if(P&&P.air){c.up=c.up||PAD.up;c.down=c.down||PAD.down;}c.jump=c.jump||PAD.jump;c.trick=c.trick||PAD.trick;c.gas=PAD.gas;c.brake=PAD.brake;}return c;};
+const _updatePad=update;update=function(dt){try{padPoll(dt);}catch(e){}return _updatePad(dt);};
+addEventListener('gamepadconnected',()=>{try{padPoll(0);}catch(e){}});
+
 /* ---------- Village look: real buildings, fountain, better furniture, back view ---------- */
 function bPoly(p,fill){ctx.beginPath();ctx.moveTo(p[0],p[1]);for(let i=2;i<p.length;i+=2)ctx.lineTo(p[i],p[i+1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}}
 function bTex(kind,x,y,w,h,c){ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
