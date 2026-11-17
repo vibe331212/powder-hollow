@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1794923063">
+<meta name="ph-build" content="1794923926">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3525,9 +3525,11 @@ function vbPlane(it,V){const b=it._bb,c=vbPlaneCanvas(it,b);ctx.setTransform(DPR
     pa=pb;}ctx.globalAlpha=1;}
 
 const _drawBldVB=drawBld;drawBld=function(id,x,y,w,h){if(ctx===VBP_CTX&&!VBP.bld)VBP.bld={id,x,y,w,h};return _drawBldVB(id,x,y,w,h);};
+const VB_ROOFC={home:'#c0453f',pine:'#2f6d55',blue:'#2c3e66',cabin:'#3d5fa8',rose:'#3a4f8a',sunny:'#c0453f',manor:'#16407a',store:'#2f6d55',lodge:'#2f6d55',cafe:'#e0483a'};
+const VB_WALLC={home:'#7fa8d6',pine:'#c99a6e',blue:'#5d8fd0',cabin:'#8a6a52',rose:'#e9a9a0',sunny:'#f2d58a',manor:'#f6efe2',store:'#c86b5a',lodge:'#8a6a52',cafe:'#4fd8b6'};
 function vbCol(e,b,x,y,fb){try{const d=e.g.getImageData(Math.round((x-b.x)*e.s),Math.round((y-b.y)*e.s),1,1).data;return d[3]>200?'rgb('+d[0]+','+d[1]+','+d[2]+')':fb;}catch(err){return fb;}}
 function vbBox(it,V,e,b){const q=it._box,x0=q.x+4,x1=q.x+q.w-4,B=q.B-2,Bk=q.B-q.D,cx=(x0+x1)/2,eH=q.h*.62,rH=q.h+22;
-  if(!e.cols||e.colT!==e.t){e.colT=e.t;e.cols={wall:vbCol(e,b,q.x+q.w*.06,q.y+q.h*.86,'#d9c2a0'),roof:vbCol(e,b,q.x+q.w*.3,q.y+q.h*.22,'#7d8ca3')};}
+  if(!e.cols||e.colT!==e.t){e.colT=e.t;e.cols={wall:VB_WALLC[q.id]||vbCol(e,b,q.x+q.w*.06,q.y+q.h*.86,'#d9c2a0'),roof:VB_ROOFC[q.id]||'#c0453f'};}
   const wall=e.cols.wall,roof=e.cols.roof;
   const P=(x,y,z)=>{const dx=x-V.px,dy=y-V.py,X=V.px+V.yc*dx+V.ys*dy,Y=V.py-V.ys*dx+V.yc*dy,d=V.camY-Y,k=V.F/Math.max(1,d);return[W/2+(X-V.px)*k,V.hor+V.camH*k-z*k,d];};
   const cwx=V.px-V.ys*VB_BACK,cwy=V.py+V.yc*VB_BACK,cz=V.camH;
@@ -4010,7 +4012,7 @@ function drawVillageBack(){
     const ya=Math.max(wy0,y0lim),yb=Math.min(wy1,BH),km=(k0+k1)/2,xL=px-(W/2)/km,xa=Math.max(ox,xL),xb=Math.min(BW,xL+W/km);if(xb<=xa||yb<=ya)continue;
     ctx.drawImage(VB.G,(xa-ox)*gs,(ya-oy)*gs,(xb-xa)*gs,Math.max(.6,(yb-ya)*gs),W/2+(xa-px)*km,sy,(xb-xa)*km,2.4);}
   if(!out){const d=camY-wallY;if(d>40){const k=F/d,gy=hor+camH*k;ctx.drawImage(VB.G,0,0,gw,wallY*gs,W/2-px*k,gy-wallY*k,sc.w*k,wallY*k);ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(W/2-px*k,gy-2,sc.w*k,3);}}
-  for(const it of VB.items){it._ax=0;it._AX=0;it._AY=it.y;if(YW&&!it.flat){const ax=vbAnchor(it.fn,px),dx=ax-px,dy=it.y-py;it._ax=ax;it._wide=false;it._box=null;if(VBP.bld){const q=VBP.bld,D=clamp(q.h*1.05,150,320);it._box={x:q.x,y:q.y,w:q.w,h:q.h,B:q.y+q.h,D};const fx=q.x+q.w/2-px,fy=q.y+q.h-D/2-py;it._AY=py-ys*fx+yc*fy;}if(VBP.mn<=VBP.mx&&VBP.mx-VBP.mn>150&&VBP.yn<VBP.yx){it._wide=true;it._bb={x:VBP.mn-6,y:Math.min(VBP.yn,it.y-4)-6,w:VBP.mx-VBP.mn+12,h:Math.max(VBP.yx,it.y+4)-Math.min(VBP.yn,it.y-4)+12};}it._AX=px+yc*dx+ys*dy;if(!it._box)it._AY=py-ys*dx+yc*dy;}}
+  for(const it of VB.items){it._ax=0;it._AX=0;it._AY=it.y;if(YW&&!it.flat){const ax=vbAnchor(it.fn,px),dx=ax-px,dy=it.y-py;it._ax=ax;it._wide=false;it._box=null;if(VBP.bld){const q=VBP.bld,D=clamp(q.h*1.05,150,320);it._box={id:q.id,x:q.x,y:q.y,w:q.w,h:q.h,B:q.y+q.h,D};const fx=q.x+q.w/2-px,fy=q.y+q.h-D/2-py;it._AY=py-ys*fx+yc*fy;}if(VBP.mn<=VBP.mx&&VBP.mx-VBP.mn>150&&VBP.yn<VBP.yx){it._wide=true;it._bb={x:VBP.mn-6,y:Math.min(VBP.yn,it.y-4)-6,w:VBP.mx-VBP.mn+12,h:Math.max(VBP.yx,it.y+4)-Math.min(VBP.yn,it.y-4)+12};}it._AX=px+yc*dx+ys*dy;if(!it._box)it._AY=py-ys*dx+yc*dy;}}
   if(YW)VB.items.sort((a,b)=>a._AY-b._AY);
   const VV={px,py,yc,ys,camY,F,hor,camH};
   for(const it of VB.items){if(it.flat)continue;if(YW&&it._wide){vbPlane(it,VV);continue;}const d=camY-it._AY;if(d<46||d>3400)continue;const k=F/d,gy=hor+camH*k;
