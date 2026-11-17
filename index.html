@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1794921951">
+<meta name="ph-build" content="1794922195">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3490,8 +3490,8 @@ try{if(new URLSearchParams(location.search).get('bonus')==='sextillion'&&!save.b
 
 if(save.village){save.village=false;persist();}
 /* ---------- Back view: turn the camera with the left stick / arrow keys ---------- */
-const VBP={m:[1,0,0,1,0,0],st:[],mn:0,mx:0},VBP_D={width:0,addColorStop(){}};
-function vbpR(x,y){const m=VBP.m,X=m[0]*x+m[2]*y+m[4];if(X===X){if(X<VBP.mn)VBP.mn=X;if(X>VBP.mx)VBP.mx=X;}}
+const VBP={m:[1,0,0,1,0,0],st:[],mn:0,mx:0,yn:0,yx:0},VBP_D={width:0,addColorStop(){}};
+function vbpR(x,y){const m=VBP.m,X=m[0]*x+m[2]*y+m[4],Y=m[1]*x+m[3]*y+m[5];if(X===X&&Y===Y){if(X<VBP.mn)VBP.mn=X;if(X>VBP.mx)VBP.mx=X;if(Y<VBP.yn)VBP.yn=Y;if(Y>VBP.yx)VBP.yx=Y;}}
 const VBP_F={save(){VBP.st.push(VBP.m.slice());},restore(){if(VBP.st.length)VBP.m=VBP.st.pop();},
   translate(x,y){const m=VBP.m;m[4]+=m[0]*x+m[2]*y;m[5]+=m[1]*x+m[3]*y;},
   scale(a,b){const m=VBP.m;m[0]*=a;m[1]*=a;m[2]*=b;m[3]*=b;},
@@ -3505,7 +3505,24 @@ const VBP_F={save(){VBP.st.push(VBP.m.slice());},restore(){if(VBP.st.length)VBP.
   drawImage(i,a,b,c,d,e,f,g,h){if(arguments.length>=9){vbpR(e,f);vbpR(e+g,f+h);}else if(arguments.length>=5){vbpR(a,b);vbpR(a+c,b+d);}else vbpR(a,b);},
   measureText(){return VBP_D;},createLinearGradient(){return VBP_D;},createRadialGradient(){return VBP_D;},createPattern(){return null;}};
 const VBP_CTX=new Proxy({},{get(t,p){if(p in VBP_F)return VBP_F[p];if(p in t)return t[p];return()=>VBP_D;},set(t,p,v){t[p]=v;return true;}});
-function vbAnchor(fn,fb){const real=ctx;VBP.m=[1,0,0,1,0,0];VBP.st=[];VBP.mn=1e9;VBP.mx=-1e9;ctx=VBP_CTX;try{fn();}catch(e){}finally{ctx=real;}return VBP.mn<=VBP.mx?(VBP.mn+VBP.mx)/2:fb;}
+function vbAnchor(fn,fb){const real=ctx;VBP.m=[1,0,0,1,0,0];VBP.st=[];VBP.mn=1e9;VBP.mx=-1e9;VBP.yn=1e9;VBP.yx=-1e9;ctx=VBP_CTX;try{fn();}catch(e){}finally{ctx=real;}return VBP.mn<=VBP.mx?(VBP.mn+VBP.mx)/2:fb;}
+
+function vbPlaneCanvas(it,b){const key=Math.round(b.x)+','+Math.round(b.y)+','+Math.round(b.w)+','+Math.round(b.h)+','+it.y+','+VIL.scene+(VIL.night?'n':'d');
+  let e=VB.pc.get(key);const now=VIL.t||0;if(e&&now-e.t<1.2&&now>=e.t)return e;
+  if(!e){if(VB.pc.size>90)VB.pc.clear();const s=Math.min(1.6,2048/Math.max(b.w,b.h)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.ceil(b.w*s));cv.height=Math.max(1,Math.ceil(b.h*s));e={cv,g:cv.getContext('2d'),s,t:now};VB.pc.set(key,e);}
+  e.t=now;const g=e.g;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,e.cv.width,e.cv.height);g.setTransform(e.s,0,0,e.s,-b.x*e.s,-b.y*e.s);
+  const real=ctx,sq=VB.sq;ctx=g;VB.sq=0;try{it.fn();}catch(err){}finally{ctx=real;VB.sq=sq;ctx.globalAlpha=1;}return e;}
+function vbPlane(it,V){const b=it._bb,c=vbPlaneCanvas(it,b);ctx.setTransform(DPR,0,0,DPR,0,0);
+  const pr=x=>{const dx=x-V.px,dy=it.y-V.py,X=V.px+V.yc*dx+V.ys*dy,Y=V.py-V.ys*dx+V.yc*dy,d=V.camY-Y,k=V.F/Math.max(1,d);return{d,k,sx:W/2+(X-V.px)*k};};
+  const e0=pr(b.x),e1=pr(b.x+b.w),N=(e0.d<46||e1.d<46)?64:clamp(Math.ceil(Math.abs(e1.sx-e0.sx)/10+Math.abs(e1.k-e0.k)*b.h/6),4,80);
+  let pa=pr(b.x);
+  for(let i=0;i<N;i++){const xa=b.x+b.w*i/N,xb=b.x+b.w*(i+1)/N,pb=pr(xb);
+    if(pa.d>=46&&pb.d>=46&&(pa.d<3400||pb.d<3400)){const k=(pa.k+pb.k)/2,gy=V.hor+V.camH*k,top=gy-(it.y-b.y)*k,hg=b.h*k,sx=(xa-b.x)*c.s,sw=Math.max(1,(xb-xa)*c.s);
+      if(Math.max(pa.sx,pb.sx)>-50&&Math.min(pa.sx,pb.sx)<W+50){
+        const dm=Math.min(pa.d,pb.d);ctx.globalAlpha=dm<250?clamp((dm-70)/180,.12,1):1;
+        if(pb.sx>=pa.sx)ctx.drawImage(c.cv,sx,0,sw,c.cv.height,pa.sx-.6,top,pb.sx-pa.sx+1.2,hg);
+        else{ctx.save();ctx.translate(pa.sx,0);ctx.scale(-1,1);ctx.drawImage(c.cv,sx,0,sw,c.cv.height,-.6,top,pa.sx-pb.sx+1.2,hg);ctx.restore();}}}
+    pa=pb;}ctx.globalAlpha=1;}
 function vbAxis(v){const a=Math.abs(v);return a<.18?0:Math.sign(v)*(a-.18)/.82;}
 const _uvYaw=updateVillage;
 updateVillage=function(dt){
@@ -3937,7 +3954,7 @@ function drawCafeteria(){const sc=SCN.cafe;
   const a=nearest();if(a&&a.k==='buyfood'){const i=FOOD.indexOf(a.f),fx=250+i*70;ctx.strokeStyle='#f2b630';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(fx,176,26,26,0,0,TAU);ctx.stroke();}}
 const VB={on:save.vcam==='back',collect:false,items:null,G:null,g:null,sq:0,hor:0,F:1,camH:1,camY:0,cx:0};
 function vbFlush(items){items.sort((a,b)=>a.y-b.y);if(!VB.collect){for(const it of items)it.fn();return;}VB.items=items;for(const it of items)if(it.flat)it.fn();}
-const VB_BACK=240,VB_R=2200;VB.yaw=0;
+const VB_BACK=240,VB_R=2200;VB.yaw=0;VB.pc=new Map();
 const VB_WALL={shop:['#e9dccd','#c9b8a2'],lodge:['#8a6a52','#6d4d39'],cafe:['#fff2d6','#c9b8a2']};
 function vbScene(){if(VIL.scene==='cafe')drawCafeteria();else if(VIL.scene==='mtn')drawMountain();else if(VIL.scene==='out')drawVillageOut();else if(VIL.scene==='shop')drawShop();else if(VIL.scene==='lodge')drawLodge();else drawHouse();}
 function drawVillageBack(){
@@ -3966,9 +3983,10 @@ function drawVillageBack(){
     const ya=Math.max(wy0,y0lim),yb=Math.min(wy1,BH),km=(k0+k1)/2,xL=px-(W/2)/km,xa=Math.max(ox,xL),xb=Math.min(BW,xL+W/km);if(xb<=xa||yb<=ya)continue;
     ctx.drawImage(VB.G,(xa-ox)*gs,(ya-oy)*gs,(xb-xa)*gs,Math.max(.6,(yb-ya)*gs),W/2+(xa-px)*km,sy,(xb-xa)*km,2.4);}
   if(!out){const d=camY-wallY;if(d>40){const k=F/d,gy=hor+camH*k;ctx.drawImage(VB.G,0,0,gw,wallY*gs,W/2-px*k,gy-wallY*k,sc.w*k,wallY*k);ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(W/2-px*k,gy-2,sc.w*k,3);}}
-  for(const it of VB.items){it._ax=0;it._AX=0;it._AY=it.y;if(YW&&!it.flat){const ax=vbAnchor(it.fn,px),dx=ax-px,dy=it.y-py;it._ax=ax;it._AX=px+yc*dx+ys*dy;it._AY=py-ys*dx+yc*dy;}}
+  for(const it of VB.items){it._ax=0;it._AX=0;it._AY=it.y;if(YW&&!it.flat){const ax=vbAnchor(it.fn,px),dx=ax-px,dy=it.y-py;it._ax=ax;it._wide=false;if(VBP.mn<=VBP.mx&&VBP.mx-VBP.mn>150&&VBP.yn<VBP.yx){it._wide=true;it._bb={x:VBP.mn-6,y:Math.min(VBP.yn,it.y-4)-6,w:VBP.mx-VBP.mn+12,h:Math.max(VBP.yx,it.y+4)-Math.min(VBP.yn,it.y-4)+12};}it._AX=px+yc*dx+ys*dy;it._AY=py-ys*dx+yc*dy;}}
   if(YW)VB.items.sort((a,b)=>a._AY-b._AY);
-  for(const it of VB.items){if(it.flat)continue;const d=camY-it._AY;if(d<46||d>3400)continue;const k=F/d,gy=hor+camH*k;
+  const VV={px,py,yc,ys,camY,F,hor,camH};
+  for(const it of VB.items){if(it.flat)continue;if(YW&&it._wide){vbPlane(it,VV);continue;}const d=camY-it._AY;if(d<46||d>3400)continue;const k=F/d,gy=hor+camH*k;
     if(it.v3){const v=it.v3,yb=Math.min(v.y1,camY-46);if(yb<=v.y0)continue;const a=P3(v.x,v.y0,0),b=P3(v.x,v.y0,70),c=P3(v.x,yb,70),e=P3(v.x,yb,0);ctx.fillStyle=shade(v.c,v.x<px?-.08:-.16);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.lineTo(e[0],e[1]);ctx.closePath();ctx.fill();ctx.strokeStyle=shade(v.c2,-.25);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.lineTo(c[0],c[1]);ctx.stroke();continue;}
     ctx.setTransform(DPR*k,0,0,DPR*k,DPR*(W/2+(it._AX-it._ax-px)*k),DPR*(gy-it.y*k));VB.sq=camH/d;try{it.fn();}catch(e){}ctx.globalAlpha=1;}
   VB.sq=0;ctx.setTransform(DPR,0,0,DPR,0,0);
