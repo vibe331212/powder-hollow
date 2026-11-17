@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1794871395">
+<meta name="ph-build" content="1794877049">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2073,7 +2073,7 @@ function faint(){const lose=Math.min(20000,Math.floor(save.coins));save.coins-=l
 function eatItem(i){const id=save.bag[i];const f=food(id);if(!f)return;save.bag.splice(i,1);
   if(f.frozen){VIL.nausea=12;save.health=Math.max(1,save.health-15);save.food=Math.min(100,save.food+15);persist();sfx('poof');closeBag();vToast('Brr! That burrito was frozen. You feel sick...');return;}
   save.food=Math.min(100,save.food+f.food);save.health=Math.min(100,save.health+5);persist();sfx('collect',5);renderBag();$('bMsg').textContent='Yum! '+f.name+' gave you +'+f.food+' food.';renderVillageHud();}
-function renderBag(){const g=$('bGrid');g.textContent='';if(save.fishes&&save.fishes.length){const p=document.createElement('p');p.className='lockline';const cnt={};for(const id of save.fishes)cnt[id]=(cnt[id]||0)+1;p.textContent='Fish bucket: '+Object.entries(cnt).map(([id,n])=>n+' '+fishById(id).name).join(', ')+'. Sell them at the Fish Shop or put them in a fish tank.';g.appendChild(p);}if(!save.bag.length){const p=document.createElement('p');p.className='lockline';p.textContent='Your bag is empty.';g.appendChild(p);}
+function renderBag(){const g=$('bGrid');g.textContent='';if(save.fishes&&save.fishes.length){const p=document.createElement('p');p.className='lockline';const cnt={};for(const id of save.fishes)cnt[id]=(cnt[id]||0)+1;p.textContent='Fish bucket: '+Object.entries(cnt).map(([id,n])=>n+' '+fishById(id).name).join(', ')+'. Sell them at the Sell Fish sign or put them in a fish tank.';g.appendChild(p);}if(!save.bag.length){const p=document.createElement('p');p.className='lockline';p.textContent='Your bag is empty.';g.appendChild(p);}
   save.bag.forEach((id,i)=>{const f=food(id);const d=document.createElement('div');d.className='dItem';const c=document.createElement('canvas');c.width=100;c.height=100;const sv=ctx;ctx=c.getContext('2d');try{drawFood(id,50,62,1.6);}finally{ctx=sv;}
     const nm=document.createElement('span');nm.textContent=f.name;const sm=document.createElement('small');sm.textContent=f.frozen?'Frozen! Warm it in your kitchen':'+'+f.food+' food';const b=document.createElement('button');b.className='chip';b.textContent=f.frozen?'Eat anyway':'Eat';b.onclick=()=>eatItem(i);d.append(c,nm,sm,b);g.appendChild(d);});}
 function closeBag(){showScreen(null);game.state='village';$('vhud').hidden=false;renderVillageHud();}
@@ -2158,7 +2158,7 @@ const horseById=id=>HORSES.find(h=>h.id===id);
 const HLOT=HORSES.map((h,i)=>({horse:h.id,x:1450+i*92,y:1985}));
 const FISH=[{id:'minnow',name:'Minnow',c:'#9fb0c9',v:60,w:40,z:.34},{id:'perch',name:'Perch',c:'#e0b84a',v:120,w:25,z:.3},{id:'trout',name:'Trout',c:'#8fb07a',v:250,w:16,z:.25},{id:'salmon',name:'Salmon',c:'#f28a6e',v:450,w:10,z:.2},{id:'pike',name:'Pike',c:'#5f8a5a',v:800,w:6,z:.16},{id:'rainbow',name:'Rainbow Fish',c:'rainbow',v:1800,w:2.5,z:.12},{id:'gold',name:'Golden Fish',c:'#ffd23f',v:5000,w:.6,z:.09}];
 const fishById=id=>FISH.find(f=>f.id===id);
-SCN.out.solids.push([700,1720,180,150],[1480,1690,320,190]);
+
 const SNOW_BASE=SCN.out.solids.slice();
 function snowRect(b){return b.t==='man'?[b.x-16,b.y-10,32,14]:b.t==='fort'?[b.x-60,b.y-16,120,22]:[b.x-62,b.y-40,124,46];}
 function rebuildSnow(){SCN.out.solids=SNOW_BASE.concat(save.snow.map(snowRect));}
@@ -2171,8 +2171,8 @@ function inLake(x,y,m){return((x-LAKE.x)/(LAKE.rx+m))**2+((y-LAKE.y)/(LAKE.ry+m)
 // ---- acts
 function promptText2(a){
   if(a.k==='fishing'){const F=VIL.fish;if(F.ph==='wait')return'Waiting for a bite...  (tap to reel in)';if(F.ph==='bite')return'A BITE! Press now!';if(F.ph==='reel')return'Press when the marker is in the green!';return'';}
-  if(a.k==='fish')return save.fishes.length>=20?'Fish bucket full. Sell at the Fish Shop':'Go ice fishing';
-  if(a.k==='sellfish'){if(!save.fishes.length)return'Fish Shop: catch fish at the holes on the frozen lake';const v=save.fishes.reduce((t,id)=>t+fishById(id).v,0);return'Sell '+save.fishes.length+' fish  +'+v.toLocaleString()+' coins';}
+  if(a.k==='fish')return save.fishes.length>=20?'Fish bucket full. Sell at the Sell Fish sign':'Go ice fishing';
+  if(a.k==='sellfish'){if(!save.fishes.length)return'Sell Fish: catch fish at the holes on the frozen lake';const v=save.fishes.reduce((t,id)=>t+fishById(id).v,0);return'Sell '+save.fishes.length+' fish  +'+v.toLocaleString()+' coins';}
   if(a.k==='tank')return'Put your '+save.fishes.length+' fish in the fish tank';
   if(a.k==='lothorse'){const H=horseById(a.lh.horse);return save.horses.includes(H.id)?'Ride the '+H.name:'Buy '+H.name+'  '+H.price.toLocaleString()+' coins';}
   if(a.k==='mount')return'Ride your '+horseById(VIL.horsePark.id).name;
@@ -2183,7 +2183,7 @@ function promptText2(a){
   return'';}
 function villageAct2(a){
   if(a.k==='fishing'){fishPress();return true;}
-  if(a.k==='fish'){if(save.fishes.length>=20){vToast('Your fish bucket is full! Sell at the Fish Shop.');return true;}VIL.fish={h:a.h,ph:'wait',t:rand(1.8,4.5)};VIL.target=null;VIL.dir=a.h.x<VIL.x?'left':'right';vToast('You dropped your line in the hole...');return true;}
+  if(a.k==='fish'){if(save.fishes.length>=20){vToast('Your fish bucket is full! Sell at the Sell Fish sign.');return true;}VIL.fish={h:a.h,ph:'wait',t:rand(1.8,4.5)};VIL.target=null;VIL.dir=a.h.x<VIL.x?'left':'right';vToast('You dropped your line in the hole...');return true;}
   if(a.k==='sellfish'){if(!save.fishes.length){vToast('Catch fish on the frozen lake, then sell them here');return true;}const v=save.fishes.reduce((t,id)=>t+fishById(id).v,0);save.coins+=v;const n=save.fishes.length;save.fishes=[];persist();sfx('goal');vToast('Sold '+n+' fish for '+v.toLocaleString()+' coins!');renderVillageHud();return true;}
   if(a.k==='tank'){const room=12-save.tank.length;if(room<=0){vToast('Your fish tank is full (12 fish)');return true;}const mv=save.fishes.splice(0,room);save.tank.push(...mv);persist();sfx('pop');vToast(mv.length+' fish are swimming in your tank now!');return true;}
   if(a.k==='lothorse'){const H=horseById(a.lh.horse);
@@ -2297,8 +2297,7 @@ function drawSouthGround(){
   if(HR.on){const c=HR_CP[HR.cp];ctx.strokeStyle='#ffd23f';ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(c.x,c.y,60,24,0,0,TAU);ctx.stroke();}
 }
 function addSouth(add){
-  add(1870,()=>{drawFacade(700,1720,180,150,'#6f9fc8','#2c3e66','Fish Shop',{windows:[.22,.78]});for(let i=0;i<3;i++)drawFishIcon(720+i*20,1700-i*4,FISH[i+1],.8,1);});
-  add(1880,()=>{drawFacade(1480,1690,320,190,'#b5533c','#5b3e2b','Stable',{windows:[.18,.82],logs:true});for(const hx of[1450,1830]){ell(hx,1876,26,12,'#e8c462');ctx.fillStyle='#d9b04a';rrect(hx-26,1850,52,26,6);ctx.fill();ctx.strokeStyle='#b8902e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(hx-26,1862);ctx.lineTo(hx+26,1862);ctx.stroke();}});
+  add(FSHOP.y-10,()=>signPost(FSHOP.x,FSHOP.y-20,'SELL FISH','#3d8ee0'));
   add(1960,()=>{ctx.fillStyle='#8a6448';ctx.fillRect(1405,1945,470,6);ctx.fillRect(1405,1925,470,5);for(let i=0;i<=10;i++)ctx.fillRect(1405+i*47,1918,6,40);});
   for(const lh of HLOT){const H=horseById(lh.horse);add(lh.y+2,()=>{drawHorse(lh.x,lh.y,'down',0,false,H,null);const own=save.horses.includes(H.id);ctx.fillStyle=own?'#2f7fd6':'#ffffff';rrect(lh.x-44,lh.y+10,88,30,6);ctx.fill();ctx.strokeStyle='#16407a';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle=own?'#ffffff':'#16407a';ctx.font='800 9px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(H.name,lh.x,lh.y+19);ctx.fillText(own?'OWNED':H.price.toLocaleString()+' coins',lh.x,lh.y+31);});}
   add(LAKE.y-LAKE.ry-10,()=>signPost(LAKE.x+250,LAKE.y-LAKE.ry-20,'FROZEN LAKE','#3d8ee0'));
