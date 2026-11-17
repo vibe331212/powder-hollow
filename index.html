@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Powder Hollow">
-<meta name="ph-build" content="1794922195">
+<meta name="ph-build" content="1794923063">
 <title>Powder Hollow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3505,14 +3505,14 @@ const VBP_F={save(){VBP.st.push(VBP.m.slice());},restore(){if(VBP.st.length)VBP.
   drawImage(i,a,b,c,d,e,f,g,h){if(arguments.length>=9){vbpR(e,f);vbpR(e+g,f+h);}else if(arguments.length>=5){vbpR(a,b);vbpR(a+c,b+d);}else vbpR(a,b);},
   measureText(){return VBP_D;},createLinearGradient(){return VBP_D;},createRadialGradient(){return VBP_D;},createPattern(){return null;}};
 const VBP_CTX=new Proxy({},{get(t,p){if(p in VBP_F)return VBP_F[p];if(p in t)return t[p];return()=>VBP_D;},set(t,p,v){t[p]=v;return true;}});
-function vbAnchor(fn,fb){const real=ctx;VBP.m=[1,0,0,1,0,0];VBP.st=[];VBP.mn=1e9;VBP.mx=-1e9;VBP.yn=1e9;VBP.yx=-1e9;ctx=VBP_CTX;try{fn();}catch(e){}finally{ctx=real;}return VBP.mn<=VBP.mx?(VBP.mn+VBP.mx)/2:fb;}
+function vbAnchor(fn,fb){const real=ctx;VBP.m=[1,0,0,1,0,0];VBP.st=[];VBP.mn=1e9;VBP.mx=-1e9;VBP.yn=1e9;VBP.yx=-1e9;VBP.bld=null;ctx=VBP_CTX;try{fn();}catch(e){}finally{ctx=real;}return VBP.mn<=VBP.mx?(VBP.mn+VBP.mx)/2:fb;}
 
 function vbPlaneCanvas(it,b){const key=Math.round(b.x)+','+Math.round(b.y)+','+Math.round(b.w)+','+Math.round(b.h)+','+it.y+','+VIL.scene+(VIL.night?'n':'d');
   let e=VB.pc.get(key);const now=VIL.t||0;if(e&&now-e.t<1.2&&now>=e.t)return e;
   if(!e){if(VB.pc.size>90)VB.pc.clear();const s=Math.min(1.6,2048/Math.max(b.w,b.h)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.ceil(b.w*s));cv.height=Math.max(1,Math.ceil(b.h*s));e={cv,g:cv.getContext('2d'),s,t:now};VB.pc.set(key,e);}
   e.t=now;const g=e.g;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,e.cv.width,e.cv.height);g.setTransform(e.s,0,0,e.s,-b.x*e.s,-b.y*e.s);
   const real=ctx,sq=VB.sq;ctx=g;VB.sq=0;try{it.fn();}catch(err){}finally{ctx=real;VB.sq=sq;ctx.globalAlpha=1;}return e;}
-function vbPlane(it,V){const b=it._bb,c=vbPlaneCanvas(it,b);ctx.setTransform(DPR,0,0,DPR,0,0);
+function vbPlane(it,V){const b=it._bb,c=vbPlaneCanvas(it,b);ctx.setTransform(DPR,0,0,DPR,0,0);if(it._box&&vbBox(it,V,c,b))return;
   const pr=x=>{const dx=x-V.px,dy=it.y-V.py,X=V.px+V.yc*dx+V.ys*dy,Y=V.py-V.ys*dx+V.yc*dy,d=V.camY-Y,k=V.F/Math.max(1,d);return{d,k,sx:W/2+(X-V.px)*k};};
   const e0=pr(b.x),e1=pr(b.x+b.w),N=(e0.d<46||e1.d<46)?64:clamp(Math.ceil(Math.abs(e1.sx-e0.sx)/10+Math.abs(e1.k-e0.k)*b.h/6),4,80);
   let pa=pr(b.x);
@@ -3523,6 +3523,33 @@ function vbPlane(it,V){const b=it._bb,c=vbPlaneCanvas(it,b);ctx.setTransform(DPR
         if(pb.sx>=pa.sx)ctx.drawImage(c.cv,sx,0,sw,c.cv.height,pa.sx-.6,top,pb.sx-pa.sx+1.2,hg);
         else{ctx.save();ctx.translate(pa.sx,0);ctx.scale(-1,1);ctx.drawImage(c.cv,sx,0,sw,c.cv.height,-.6,top,pa.sx-pb.sx+1.2,hg);ctx.restore();}}}
     pa=pb;}ctx.globalAlpha=1;}
+
+const _drawBldVB=drawBld;drawBld=function(id,x,y,w,h){if(ctx===VBP_CTX&&!VBP.bld)VBP.bld={id,x,y,w,h};return _drawBldVB(id,x,y,w,h);};
+function vbCol(e,b,x,y,fb){try{const d=e.g.getImageData(Math.round((x-b.x)*e.s),Math.round((y-b.y)*e.s),1,1).data;return d[3]>200?'rgb('+d[0]+','+d[1]+','+d[2]+')':fb;}catch(err){return fb;}}
+function vbBox(it,V,e,b){const q=it._box,x0=q.x+4,x1=q.x+q.w-4,B=q.B-2,Bk=q.B-q.D,cx=(x0+x1)/2,eH=q.h*.62,rH=q.h+22;
+  if(!e.cols||e.colT!==e.t){e.colT=e.t;e.cols={wall:vbCol(e,b,q.x+q.w*.06,q.y+q.h*.86,'#d9c2a0'),roof:vbCol(e,b,q.x+q.w*.3,q.y+q.h*.22,'#7d8ca3')};}
+  const wall=e.cols.wall,roof=e.cols.roof;
+  const P=(x,y,z)=>{const dx=x-V.px,dy=y-V.py,X=V.px+V.yc*dx+V.ys*dy,Y=V.py-V.ys*dx+V.yc*dy,d=V.camY-Y,k=V.F/Math.max(1,d);return[W/2+(X-V.px)*k,V.hor+V.camH*k-z*k,d];};
+  const cwx=V.px-V.ys*VB_BACK,cwy=V.py+V.yc*VB_BACK,cz=V.camH;
+  const face=(pts,fill,line)=>{const pp=pts.map(p=>P(p[0],p[1],p[2]));let dm=1e9,dM=0;for(const p of pp){if(p[2]<dm)dm=p[2];if(p[2]>dM)dM=p[2];}if(dm<46||dm>3400)return dm<46;
+    ctx.globalAlpha=dm<250?clamp((dm-70)/180,.12,1):1;ctx.beginPath();ctx.moveTo(pp[0][0],pp[0][1]);for(let i=1;i<pp.length;i++)ctx.lineTo(pp[i][0],pp[i][1]);ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(line){ctx.strokeStyle=line;ctx.lineWidth=1.2;ctx.stroke();}return false;};
+  const win=(x,y0,y1,z0,z1)=>face([[x,y0,z0],[x,y1,z0],[x,y1,z1],[x,y0,z1]],VIL.night?'#ffd98a':'#bfe3f7','#ffffff');
+  const frontVis=cwy>B;
+  // back wall with gable
+  if(cwy<Bk){face([[x0,Bk,0],[x1,Bk,0],[x1,Bk,eH],[cx,Bk,rH],[x0,Bk,eH]],shade2(wall,-.16),shade2(wall,-.3));}
+  // side walls with windows
+  for(const side of[0,1]){const sx=side?x1:x0,vis=side?cwx>x1:cwx<x0;if(!vis)continue;
+    face([[sx,B,0],[sx,Bk,0],[sx,Bk,eH],[sx,B,eH]],shade2(wall,side?-.12:-.06),shade2(wall,-.3));
+    const n=Math.max(1,Math.round(q.D/110));for(let i=0;i<n;i++){const t0=(i+.28)/n,t1=(i+.72)/n;win(sx,B-q.D*t0,B-q.D*t1,eH*.32,eH*.7);}
+    ctx.fillStyle='#ffffff';}
+  // roof planes (visible when looking from that side)
+  const roofF=(side)=>{const ex=side?x1+10:x0-10;face([[ex,B+8,eH-6],[ex,Bk-8,eH-6],[cx,Bk-8,rH],[cx,B+8,rH]],shade2(roof,side?-.1:0),shade2(roof,-.3));
+    face([[ex,B+8,eH-6],[ex,Bk-8,eH-6],[ex+(cx-ex)*.18,Bk-8,eH-6+(rH-eH+6)*.18],[ex+(cx-ex)*.18,B+8,eH-6+(rH-eH+6)*.18]],'rgba(255,255,255,.92)');};
+  const lv=-(rH-eH)*(cwx-x0)+(cx-x0)*(cz-eH)>0,rv=(rH-eH)*(cwx-x1)+(x1-cx)*(cz-eH)>0;
+  if(cwx<cx){if(rv)roofF(1);if(lv)roofF(0);}else{if(lv)roofF(0);if(rv)roofF(1);}
+  ctx.globalAlpha=1;
+  return !frontVis;}
+function shade2(c,a){if(c[0]==='#')return shade(c,a);const m=c.match(/\d+/g);if(!m)return c;const f=v=>Math.round(clamp(a<0?v*(1+a):v+(255-v)*a,0,255));return'rgb('+f(+m[0])+','+f(+m[1])+','+f(+m[2])+')';}
 function vbAxis(v){const a=Math.abs(v);return a<.18?0:Math.sign(v)*(a-.18)/.82;}
 const _uvYaw=updateVillage;
 updateVillage=function(dt){
@@ -3983,7 +4010,7 @@ function drawVillageBack(){
     const ya=Math.max(wy0,y0lim),yb=Math.min(wy1,BH),km=(k0+k1)/2,xL=px-(W/2)/km,xa=Math.max(ox,xL),xb=Math.min(BW,xL+W/km);if(xb<=xa||yb<=ya)continue;
     ctx.drawImage(VB.G,(xa-ox)*gs,(ya-oy)*gs,(xb-xa)*gs,Math.max(.6,(yb-ya)*gs),W/2+(xa-px)*km,sy,(xb-xa)*km,2.4);}
   if(!out){const d=camY-wallY;if(d>40){const k=F/d,gy=hor+camH*k;ctx.drawImage(VB.G,0,0,gw,wallY*gs,W/2-px*k,gy-wallY*k,sc.w*k,wallY*k);ctx.fillStyle='rgba(0,0,0,.18)';ctx.fillRect(W/2-px*k,gy-2,sc.w*k,3);}}
-  for(const it of VB.items){it._ax=0;it._AX=0;it._AY=it.y;if(YW&&!it.flat){const ax=vbAnchor(it.fn,px),dx=ax-px,dy=it.y-py;it._ax=ax;it._wide=false;if(VBP.mn<=VBP.mx&&VBP.mx-VBP.mn>150&&VBP.yn<VBP.yx){it._wide=true;it._bb={x:VBP.mn-6,y:Math.min(VBP.yn,it.y-4)-6,w:VBP.mx-VBP.mn+12,h:Math.max(VBP.yx,it.y+4)-Math.min(VBP.yn,it.y-4)+12};}it._AX=px+yc*dx+ys*dy;it._AY=py-ys*dx+yc*dy;}}
+  for(const it of VB.items){it._ax=0;it._AX=0;it._AY=it.y;if(YW&&!it.flat){const ax=vbAnchor(it.fn,px),dx=ax-px,dy=it.y-py;it._ax=ax;it._wide=false;it._box=null;if(VBP.bld){const q=VBP.bld,D=clamp(q.h*1.05,150,320);it._box={x:q.x,y:q.y,w:q.w,h:q.h,B:q.y+q.h,D};const fx=q.x+q.w/2-px,fy=q.y+q.h-D/2-py;it._AY=py-ys*fx+yc*fy;}if(VBP.mn<=VBP.mx&&VBP.mx-VBP.mn>150&&VBP.yn<VBP.yx){it._wide=true;it._bb={x:VBP.mn-6,y:Math.min(VBP.yn,it.y-4)-6,w:VBP.mx-VBP.mn+12,h:Math.max(VBP.yx,it.y+4)-Math.min(VBP.yn,it.y-4)+12};}it._AX=px+yc*dx+ys*dy;if(!it._box)it._AY=py-ys*dx+yc*dy;}}
   if(YW)VB.items.sort((a,b)=>a._AY-b._AY);
   const VV={px,py,yc,ys,camY,F,hor,camH};
   for(const it of VB.items){if(it.flat)continue;if(YW&&it._wide){vbPlane(it,VV);continue;}const d=camY-it._AY;if(d<46||d>3400)continue;const k=F/d,gy=hor+camH*k;
